@@ -1,0 +1,161 @@
+id,topic,question,answer,language,source_file
+faq_0001,opening_hours,Cho tôi hỏi về opening_hours,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0002,size,size của quán là gì?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0003,delivery,What is the delivery policy?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0004,size,Cho tôi hỏi về size,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0005,promotion,Cho tôi hỏi về promotion,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0006,wifi,Thông tin wifi như thế nào?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0007,delivery,delivery của quán là gì?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0008,delivery,Cho tôi hỏi về delivery,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0009,invoice,invoice của quán là gì?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0010,delivery,What is the delivery policy?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv
+faq_0011,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0012,payment,Cho tôi hỏi về payment,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0013,payment,Cho tôi hỏi về payment,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0014,promotion,promotion của quán là gì?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0015,payment,Thông tin payment như thế nào?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",en,mock_faq.csv
+faq_0016,promotion,Cho tôi hỏi về promotion,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0017,parking,Cho tôi hỏi về parking,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0018,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0019,wifi,Can you tell me about wifi?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0020,invoice,Cho tôi hỏi về invoice,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,en,mock_faq.csv
+faq_0021,takeaway,Thông tin takeaway như thế nào?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0022,parking,Cho tôi hỏi về parking,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0023,invoice,invoice của quán là gì?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0024,invoice,Can you tell me about invoice?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0025,delivery,Thông tin delivery như thế nào?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv
+faq_0026,opening_hours,Thông tin opening_hours như thế nào?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0027,delivery,What is the delivery policy?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0028,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0029,delivery,delivery của quán là gì?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0030,opening_hours,Thông tin opening_hours như thế nào?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,en,mock_faq.csv
+faq_0031,payment,What is the payment policy?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0032,parking,parking của quán là gì?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0033,opening_hours,What is the opening_hours policy?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0034,promotion,Thông tin promotion như thế nào?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0035,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv
+faq_0036,allergy,What is the allergy policy?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0037,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0038,allergy,Cho tôi hỏi về allergy,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0039,parking,parking của quán là gì?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0040,promotion,promotion của quán là gì?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0041,size,What is the size policy?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0042,invoice,Thông tin invoice như thế nào?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0043,promotion,promotion của quán là gì?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0044,delivery,What is the delivery policy?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0045,delivery,delivery của quán là gì?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv
+faq_0046,parking,What is the parking policy?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0047,parking,Can you tell me about parking?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0048,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0049,parking,What is the parking policy?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0050,payment,Cho tôi hỏi về payment,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",en,mock_faq.csv
+faq_0051,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0052,payment,What is the payment policy?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0053,allergy,Thông tin allergy như thế nào?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0054,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0055,wifi,Thông tin wifi như thế nào?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",en,mock_faq.csv
+faq_0056,parking,Cho tôi hỏi về parking,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0057,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0058,allergy,Thông tin allergy như thế nào?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0059,takeaway,Can you tell me about takeaway?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0060,takeaway,Cho tôi hỏi về takeaway,Tất cả món nước đều có thể đặt mang đi.,en,mock_faq.csv
+faq_0061,size,Can you tell me about size?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0062,payment,payment của quán là gì?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0063,parking,What is the parking policy?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0064,allergy,Thông tin allergy như thế nào?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0065,opening_hours,Cho tôi hỏi về opening_hours,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,en,mock_faq.csv
+faq_0066,parking,Cho tôi hỏi về parking,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0067,invoice,Cho tôi hỏi về invoice,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0068,wifi,wifi của quán là gì?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0069,invoice,Can you tell me about invoice?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0070,allergy,allergy của quán là gì?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",en,mock_faq.csv
+faq_0071,takeaway,Can you tell me about takeaway?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0072,allergy,Cho tôi hỏi về allergy,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0073,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0074,promotion,Cho tôi hỏi về promotion,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0075,payment,payment của quán là gì?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",en,mock_faq.csv
+faq_0076,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0077,invoice,Cho tôi hỏi về invoice,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0078,size,Can you tell me about size?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0079,wifi,What is the wifi policy?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0080,invoice,invoice của quán là gì?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,en,mock_faq.csv
+faq_0081,takeaway,Cho tôi hỏi về takeaway,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0082,takeaway,What is the takeaway policy?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0083,size,What is the size policy?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0084,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0085,allergy,What is the allergy policy?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",en,mock_faq.csv
+faq_0086,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0087,takeaway,Cho tôi hỏi về takeaway,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0088,takeaway,Can you tell me about takeaway?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0089,parking,Cho tôi hỏi về parking,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0090,parking,What is the parking policy?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",en,mock_faq.csv
+faq_0091,takeaway,Cho tôi hỏi về takeaway,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0092,parking,Can you tell me about parking?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0093,opening_hours,Thông tin opening_hours như thế nào?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0094,invoice,Thông tin invoice như thế nào?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0095,delivery,Thông tin delivery như thế nào?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv
+faq_0096,size,size của quán là gì?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0097,payment,Cho tôi hỏi về payment,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0098,invoice,Can you tell me about invoice?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0099,payment,Cho tôi hỏi về payment,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0100,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,en,mock_faq.csv
+faq_0101,promotion,Thông tin promotion như thế nào?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0102,size,Can you tell me about size?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0103,promotion,promotion của quán là gì?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0104,invoice,Can you tell me about invoice?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0105,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0106,wifi,What is the wifi policy?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0107,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0108,wifi,Thông tin wifi như thế nào?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",vi,mock_faq.csv
+faq_0109,parking,Can you tell me about parking?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0110,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0111,size,What is the size policy?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0112,invoice,Can you tell me about invoice?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0113,invoice,Thông tin invoice như thế nào?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0114,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0115,wifi,Can you tell me about wifi?,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",en,mock_faq.csv
+faq_0116,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0117,payment,Can you tell me about payment?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0118,payment,What is the payment policy?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0119,size,size của quán là gì?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0120,promotion,What is the promotion policy?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0121,allergy,allergy của quán là gì?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0122,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0123,payment,Can you tell me about payment?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0124,payment,payment của quán là gì?,"Quán hỗ trợ tiền mặt, thẻ ngân hàng, Momo và chuyển khoản.",vi,mock_faq.csv
+faq_0125,parking,Can you tell me about parking?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",en,mock_faq.csv
+faq_0126,delivery,Cho tôi hỏi về delivery,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0127,takeaway,Thông tin takeaway như thế nào?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0128,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0129,parking,Can you tell me about parking?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0130,parking,parking của quán là gì?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",en,mock_faq.csv
+faq_0131,takeaway,takeaway của quán là gì?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0132,size,size của quán là gì?,"Một số món có size S, M hoặc L tùy theo danh mục.",vi,mock_faq.csv
+faq_0133,delivery,Cho tôi hỏi về delivery,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0134,opening_hours,opening_hours của quán là gì?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0135,wifi,Cho tôi hỏi về wifi,"Wifi của quán là Highlands_Guest, mật khẩu là highlands123.",en,mock_faq.csv
+faq_0136,invoice,invoice của quán là gì?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0137,allergy,Cho tôi hỏi về allergy,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0138,invoice,Cho tôi hỏi về invoice,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0139,takeaway,takeaway của quán là gì?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0140,allergy,Cho tôi hỏi về allergy,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",en,mock_faq.csv
+faq_0141,takeaway,Thông tin takeaway như thế nào?,Tất cả món nước đều có thể đặt mang đi.,vi,mock_faq.csv
+faq_0142,delivery,Cho tôi hỏi về delivery,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0143,allergy,What is the allergy policy?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0144,opening_hours,Cho tôi hỏi về opening_hours,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0145,parking,parking của quán là gì?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",en,mock_faq.csv
+faq_0146,allergy,allergy của quán là gì?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0147,parking,What is the parking policy?,"Quán có khu vực giữ xe phía trước, tùy từng chi nhánh.",vi,mock_faq.csv
+faq_0148,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0149,invoice,invoice của quán là gì?,Khách hàng có thể yêu cầu xuất hóa đơn VAT tại quầy.,vi,mock_faq.csv
+faq_0150,allergy,Cho tôi hỏi về allergy,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",en,mock_faq.csv
+faq_0151,opening_hours,Thông tin opening_hours như thế nào?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0152,allergy,allergy của quán là gì?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0153,allergy,allergy của quán là gì?,"Khách hàng nên báo nhân viên nếu có dị ứng với sữa, hạt hoặc thành phần đặc biệt.",vi,mock_faq.csv
+faq_0154,delivery,What is the delivery policy?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0155,promotion,Thông tin promotion như thế nào?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,en,mock_faq.csv
+faq_0156,opening_hours,What is the opening_hours policy?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0157,delivery,delivery của quán là gì?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,vi,mock_faq.csv
+faq_0158,promotion,Can you tell me about promotion?,Khuyến mãi có thể thay đổi theo từng thời điểm và từng chi nhánh.,vi,mock_faq.csv
+faq_0159,opening_hours,Can you tell me about opening_hours?,Quán mở cửa từ 7:00 đến 22:00 hằng ngày.,vi,mock_faq.csv
+faq_0160,delivery,Can you tell me about delivery?,Quán có hỗ trợ đặt món mang đi và giao hàng qua đối tác giao nhận.,en,mock_faq.csv

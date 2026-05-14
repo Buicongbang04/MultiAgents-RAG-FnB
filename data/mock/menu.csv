@@ -1,0 +1,121 @@
+id,name_vi,name_en,price,size,category,ingredients,description,tags,available
+menu_0001,Bánh mì que,Bread Stick,50000,S,food,bread|snack,"Bánh mì que thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|s,true
+menu_0002,Cappuccino ít ngọt,Cappuccino,34000,S,coffee,coffee|milk foam,"Cappuccino ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|s,true
+menu_0003,Bánh phô mai truyền thống,Cheese Cake,50000,S,food,cake|cheese,"Bánh phô mai truyền thống thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|s,true
+menu_0004,Freeze trà xanh đặc biệt,Green Tea Freeze,64000,S,freeze,green tea|ice blended,"Freeze trà xanh đặc biệt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0005,Bạc xỉu,Bac Xiu,34000,S,coffee,coffee|milk|sweet,"Bạc xỉu thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|s,true
+menu_0006,Latte đặc biệt,Latte,39000,L,coffee,coffee|milk|soft,"Latte đặc biệt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0007,Freeze trà xanh truyền thống,Green Tea Freeze,74000,S,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0008,Bánh phô mai nóng,Cheese Cake,40000,L,food,cake|cheese,"Bánh phô mai nóng thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|l,true
+menu_0009,Trà vải đá,Lychee Tea,49000,L,tea,tea|lychee|sweet,"Trà vải đá thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lychee|sweet|tea|l,true
+menu_0010,Cà phê đen đá nóng,Iced Black Coffee,49000,L,coffee,coffee|strong|iced,"Cà phê đen đá nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|l,true
+menu_0011,Cappuccino ít ngọt,Cappuccino,59000,S,coffee,coffee|milk foam,"Cappuccino ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|s,true
+menu_0012,Trà sen vàng,Golden Lotus Tea,54000,S,tea,tea|lotus|fresh,"Trà sen vàng thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0013,Cà phê sữa đá size M,Iced Milk Coffee,44000,M,coffee,coffee|milk|iced,"Cà phê sữa đá size M thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|m,true
+menu_0014,Chocolate Freeze size M,Chocolate Freeze,54000,M,freeze,chocolate|ice blended,"Chocolate Freeze size M thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|m,true
+menu_0015,Bánh phô mai đặc biệt,Cheese Cake,30000,M,food,cake|cheese,"Bánh phô mai đặc biệt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|m,true
+menu_0016,Trà đào cam sả đặc biệt,Peach Lemongrass Tea,49000,S,tea,tea|peach|lemongrass,"Trà đào cam sả đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|s,true
+menu_0017,Bánh mì que size L,Bread Stick,45000,L,food,bread|snack,"Bánh mì que size L thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|l,true
+menu_0018,Chocolate Freeze truyền thống,Chocolate Freeze,49000,S,freeze,chocolate|ice blended,"Chocolate Freeze truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|s,true
+menu_0019,Bạc xỉu ít ngọt,Bac Xiu,69000,L,coffee,coffee|milk|sweet,"Bạc xỉu ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0020,Cappuccino size S,Cappuccino,34000,S,coffee,coffee|milk foam,"Cappuccino size S thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|s,true
+menu_0021,Cà phê sữa đá đá,Iced Milk Coffee,49000,M,coffee,coffee|milk|iced,"Cà phê sữa đá đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|m,true
+menu_0022,Bánh mì que ít ngọt,Bread Stick,40000,M,food,bread|snack,"Bánh mì que ít ngọt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|m,true
+menu_0023,Trà sen vàng truyền thống,Golden Lotus Tea,49000,S,tea,tea|lotus|fresh,"Trà sen vàng truyền thống thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0024,Bánh phô mai truyền thống,Cheese Cake,35000,L,food,cake|cheese,"Bánh phô mai truyền thống thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|l,true
+menu_0025,Chocolate Freeze ít ngọt,Chocolate Freeze,79000,L,freeze,chocolate|ice blended,"Chocolate Freeze ít ngọt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|l,true
+menu_0026,Bánh phô mai ít ngọt,Cheese Cake,40000,S,food,cake|cheese,"Bánh phô mai ít ngọt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|s,true
+menu_0027,Trà đào cam sả truyền thống,Peach Lemongrass Tea,69000,M,tea,tea|peach|lemongrass,"Trà đào cam sả truyền thống thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|m,true
+menu_0028,Freeze trà xanh truyền thống,Green Tea Freeze,59000,S,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0029,Bạc xỉu size S,Bac Xiu,29000,S,coffee,coffee|milk|sweet,"Bạc xỉu size S thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|s,true
+menu_0030,Trà sen vàng đá,Golden Lotus Tea,44000,M,tea,tea|lotus|fresh,"Trà sen vàng đá thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|m,true
+menu_0031,Latte truyền thống,Latte,49000,L,coffee,coffee|milk|soft,"Latte truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0032,Latte nóng,Latte,54000,L,coffee,coffee|milk|soft,"Latte nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0033,Bánh mì que ít ngọt,Bread Stick,40000,M,food,bread|snack,"Bánh mì que ít ngọt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|m,true
+menu_0034,Cà phê đen đá truyền thống,Iced Black Coffee,49000,S,coffee,coffee|strong|iced,"Cà phê đen đá truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|s,true
+menu_0035,Freeze trà xanh truyền thống,Green Tea Freeze,74000,M,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|m,true
+menu_0036,Trà đào cam sả nóng,Peach Lemongrass Tea,59000,L,tea,tea|peach|lemongrass,"Trà đào cam sả nóng thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|l,true
+menu_0037,Latte đặc biệt,Latte,44000,S,coffee,coffee|milk|soft,"Latte đặc biệt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|s,true
+menu_0038,Cà phê sữa đá size S,Iced Milk Coffee,29000,S,coffee,coffee|milk|iced,"Cà phê sữa đá size S thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|s,true
+menu_0039,Cà phê đen đá ít ngọt,Iced Black Coffee,69000,L,coffee,coffee|strong|iced,"Cà phê đen đá ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|l,true
+menu_0040,Bánh mì que đặc biệt,Bread Stick,30000,M,food,bread|snack,"Bánh mì que đặc biệt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|m,true
+menu_0041,Trà đào cam sả đặc biệt,Peach Lemongrass Tea,59000,M,tea,tea|peach|lemongrass,"Trà đào cam sả đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|m,true
+menu_0042,Freeze trà xanh đặc biệt,Green Tea Freeze,84000,M,freeze,green tea|ice blended,"Freeze trà xanh đặc biệt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|m,true
+menu_0043,Bạc xỉu truyền thống,Bac Xiu,39000,L,coffee,coffee|milk|sweet,"Bạc xỉu truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0044,Bánh mì que size L,Bread Stick,45000,L,food,bread|snack,"Bánh mì que size L thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|l,true
+menu_0045,Bánh mì que,Bread Stick,40000,M,food,bread|snack,"Bánh mì que thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|m,true
+menu_0046,Trà đào cam sả nóng,Peach Lemongrass Tea,39000,S,tea,tea|peach|lemongrass,"Trà đào cam sả nóng thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|s,true
+menu_0047,Bánh phô mai đá,Cheese Cake,55000,L,food,cake|cheese,"Bánh phô mai đá thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|l,true
+menu_0048,Cà phê đen đá,Iced Black Coffee,69000,L,coffee,coffee|strong|iced,"Cà phê đen đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|l,true
+menu_0049,Bánh mì que size M,Bread Stick,55000,M,food,bread|snack,"Bánh mì que size M thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|m,true
+menu_0050,Freeze trà xanh ít ngọt,Green Tea Freeze,64000,L,freeze,green tea|ice blended,"Freeze trà xanh ít ngọt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|l,true
+menu_0051,Trà sen vàng đặc biệt,Golden Lotus Tea,59000,S,tea,tea|lotus|fresh,"Trà sen vàng đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0052,Bạc xỉu đá,Bac Xiu,54000,L,coffee,coffee|milk|sweet,"Bạc xỉu đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0053,Bạc xỉu đá,Bac Xiu,59000,S,coffee,coffee|milk|sweet,"Bạc xỉu đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|s,true
+menu_0054,Cappuccino,Cappuccino,34000,S,coffee,coffee|milk foam,"Cappuccino thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|s,true
+menu_0055,Chocolate Freeze,Chocolate Freeze,74000,S,freeze,chocolate|ice blended,"Chocolate Freeze thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|s,true
+menu_0056,Trà vải size S,Lychee Tea,59000,S,tea,tea|lychee|sweet,"Trà vải size S thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lychee|sweet|tea|s,true
+menu_0057,Cà phê đen đá truyền thống,Iced Black Coffee,44000,S,coffee,coffee|strong|iced,"Cà phê đen đá truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|s,true
+menu_0058,Freeze trà xanh đá,Green Tea Freeze,69000,S,freeze,green tea|ice blended,"Freeze trà xanh đá thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0059,Chocolate Freeze ít ngọt,Chocolate Freeze,74000,M,freeze,chocolate|ice blended,"Chocolate Freeze ít ngọt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|m,true
+menu_0060,Bánh phô mai ít ngọt,Cheese Cake,60000,L,food,cake|cheese,"Bánh phô mai ít ngọt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|l,true
+menu_0061,Cappuccino truyền thống,Cappuccino,59000,M,coffee,coffee|milk foam,"Cappuccino truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|m,true
+menu_0062,Trà sen vàng đặc biệt,Golden Lotus Tea,59000,M,tea,tea|lotus|fresh,"Trà sen vàng đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|m,true
+menu_0063,Cà phê sữa đá ít ngọt,Iced Milk Coffee,29000,S,coffee,coffee|milk|iced,"Cà phê sữa đá ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|s,true
+menu_0064,Trà sen vàng đặc biệt,Golden Lotus Tea,59000,S,tea,tea|lotus|fresh,"Trà sen vàng đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0065,Latte ít ngọt,Latte,39000,L,coffee,coffee|milk|soft,"Latte ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0066,Cà phê sữa đá truyền thống,Iced Milk Coffee,39000,L,coffee,coffee|milk|iced,"Cà phê sữa đá truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|l,true
+menu_0067,Latte,Latte,59000,S,coffee,coffee|milk|soft,"Latte thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|s,true
+menu_0068,Trà sen vàng đặc biệt,Golden Lotus Tea,44000,S,tea,tea|lotus|fresh,"Trà sen vàng đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0069,Cappuccino nóng,Cappuccino,44000,L,coffee,coffee|milk foam,"Cappuccino nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|l,true
+menu_0070,Freeze trà xanh truyền thống,Green Tea Freeze,69000,S,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0071,Chocolate Freeze ít ngọt,Chocolate Freeze,84000,M,freeze,chocolate|ice blended,"Chocolate Freeze ít ngọt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|m,true
+menu_0072,Trà vải ít ngọt,Lychee Tea,44000,M,tea,tea|lychee|sweet,"Trà vải ít ngọt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lychee|sweet|tea|m,true
+menu_0073,Cà phê sữa đá nóng,Iced Milk Coffee,49000,L,coffee,coffee|milk|iced,"Cà phê sữa đá nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|l,true
+menu_0074,Trà đào cam sả nóng,Peach Lemongrass Tea,69000,M,tea,tea|peach|lemongrass,"Trà đào cam sả nóng thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|m,true
+menu_0075,Bạc xỉu truyền thống,Bac Xiu,64000,L,coffee,coffee|milk|sweet,"Bạc xỉu truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0076,Cà phê sữa đá nóng,Iced Milk Coffee,54000,S,coffee,coffee|milk|iced,"Cà phê sữa đá nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|s,true
+menu_0077,Trà sen vàng ít ngọt,Golden Lotus Tea,44000,S,tea,tea|lotus|fresh,"Trà sen vàng ít ngọt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0078,Latte nóng,Latte,44000,L,coffee,coffee|milk|soft,"Latte nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0079,Trà đào cam sả đá,Peach Lemongrass Tea,54000,S,tea,tea|peach|lemongrass,"Trà đào cam sả đá thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|s,true
+menu_0080,Latte nóng,Latte,59000,S,coffee,coffee|milk|soft,"Latte nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|s,true
+menu_0081,Freeze trà xanh,Green Tea Freeze,74000,S,freeze,green tea|ice blended,"Freeze trà xanh thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0082,Freeze trà xanh,Green Tea Freeze,79000,S,freeze,green tea|ice blended,"Freeze trà xanh thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0083,Latte nóng,Latte,44000,S,coffee,coffee|milk|soft,"Latte nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|s,true
+menu_0084,Trà vải size S,Lychee Tea,54000,S,tea,tea|lychee|sweet,"Trà vải size S thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lychee|sweet|tea|s,true
+menu_0085,Bạc xỉu nóng,Bac Xiu,29000,S,coffee,coffee|milk|sweet,"Bạc xỉu nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|s,true
+menu_0086,Trà đào cam sả size M,Peach Lemongrass Tea,59000,M,tea,tea|peach|lemongrass,"Trà đào cam sả size M thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|m,true
+menu_0087,Cappuccino truyền thống,Cappuccino,59000,M,coffee,coffee|milk foam,"Cappuccino truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|m,true
+menu_0088,Freeze trà xanh truyền thống,Green Tea Freeze,74000,L,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|l,true
+menu_0089,Cà phê đen đá đá,Iced Black Coffee,34000,S,coffee,coffee|strong|iced,"Cà phê đen đá đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|s,true
+menu_0090,Bạc xỉu truyền thống,Bac Xiu,59000,L,coffee,coffee|milk|sweet,"Bạc xỉu truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0091,Bạc xỉu đá,Bac Xiu,39000,L,coffee,coffee|milk|sweet,"Bạc xỉu đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0092,Bạc xỉu nóng,Bac Xiu,59000,L,coffee,coffee|milk|sweet,"Bạc xỉu nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|l,true
+menu_0093,Freeze trà xanh,Green Tea Freeze,69000,S,freeze,green tea|ice blended,"Freeze trà xanh thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0094,Cà phê sữa đá,Iced Milk Coffee,49000,S,coffee,coffee|milk|iced,"Cà phê sữa đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|s,true
+menu_0095,Cà phê sữa đá size L,Iced Milk Coffee,44000,L,coffee,coffee|milk|iced,"Cà phê sữa đá size L thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|l,true
+menu_0096,Trà đào cam sả đặc biệt,Peach Lemongrass Tea,44000,S,tea,tea|peach|lemongrass,"Trà đào cam sả đặc biệt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|s,true
+menu_0097,Chocolate Freeze,Chocolate Freeze,79000,L,freeze,chocolate|ice blended,"Chocolate Freeze thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|l,true
+menu_0098,Cà phê sữa đá truyền thống,Iced Milk Coffee,54000,M,coffee,coffee|milk|iced,"Cà phê sữa đá truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|iced|coffee|m,true
+menu_0099,Chocolate Freeze đá,Chocolate Freeze,69000,L,freeze,chocolate|ice blended,"Chocolate Freeze đá thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|l,true
+menu_0100,Latte truyền thống,Latte,49000,L,coffee,coffee|milk|soft,"Latte truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|l,true
+menu_0101,Latte nóng,Latte,39000,M,coffee,coffee|milk|soft,"Latte nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|soft|coffee|m,true
+menu_0102,Bánh mì que đá,Bread Stick,50000,L,food,bread|snack,"Bánh mì que đá thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|l,true
+menu_0103,Trà sen vàng,Golden Lotus Tea,54000,S,tea,tea|lotus|fresh,"Trà sen vàng thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0104,Chocolate Freeze,Chocolate Freeze,59000,L,freeze,chocolate|ice blended,"Chocolate Freeze thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",chocolate|ice blended|freeze|l,true
+menu_0105,Freeze trà xanh đặc biệt,Green Tea Freeze,59000,S,freeze,green tea|ice blended,"Freeze trà xanh đặc biệt thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|s,true
+menu_0106,Cà phê đen đá,Iced Black Coffee,39000,M,coffee,coffee|strong|iced,"Cà phê đen đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|m,true
+menu_0107,Trà sen vàng ít ngọt,Golden Lotus Tea,59000,M,tea,tea|lotus|fresh,"Trà sen vàng ít ngọt thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|m,true
+menu_0108,Freeze trà xanh đá,Green Tea Freeze,79000,L,freeze,green tea|ice blended,"Freeze trà xanh đá thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|l,true
+menu_0109,Bánh mì que,Bread Stick,60000,L,food,bread|snack,"Bánh mì que thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",bread|snack|food|l,true
+menu_0110,Freeze trà xanh truyền thống,Green Tea Freeze,54000,M,freeze,green tea|ice blended,"Freeze trà xanh truyền thống thuộc nhóm freeze, phù hợp cho khách muốn lựa chọn nhanh tại quán.",green tea|ice blended|freeze|m,true
+menu_0111,Cà phê đen đá,Iced Black Coffee,34000,M,coffee,coffee|strong|iced,"Cà phê đen đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|m,true
+menu_0112,Bánh phô mai ít ngọt,Cheese Cake,45000,L,food,cake|cheese,"Bánh phô mai ít ngọt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|l,true
+menu_0113,Cappuccino ít ngọt,Cappuccino,64000,L,coffee,coffee|milk foam,"Cappuccino ít ngọt thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|l,true
+menu_0114,Trà sen vàng truyền thống,Golden Lotus Tea,64000,S,tea,tea|lotus|fresh,"Trà sen vàng truyền thống thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|lotus|fresh|tea|s,true
+menu_0115,Cappuccino nóng,Cappuccino,49000,L,coffee,coffee|milk foam,"Cappuccino nóng thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|l,true
+menu_0116,Bạc xỉu truyền thống,Bac Xiu,44000,S,coffee,coffee|milk|sweet,"Bạc xỉu truyền thống thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk|sweet|coffee|s,true
+menu_0117,Cappuccino,Cappuccino,39000,S,coffee,coffee|milk foam,"Cappuccino thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|milk foam|coffee|s,true
+menu_0118,Cà phê đen đá đá,Iced Black Coffee,44000,L,coffee,coffee|strong|iced,"Cà phê đen đá đá thuộc nhóm coffee, phù hợp cho khách muốn lựa chọn nhanh tại quán.",coffee|strong|iced|coffee|l,true
+menu_0119,Bánh phô mai đặc biệt,Cheese Cake,55000,M,food,cake|cheese,"Bánh phô mai đặc biệt thuộc nhóm food, phù hợp cho khách muốn lựa chọn nhanh tại quán.",cake|cheese|food|m,true
+menu_0120,Trà đào cam sả,Peach Lemongrass Tea,49000,L,tea,tea|peach|lemongrass,"Trà đào cam sả thuộc nhóm tea, phù hợp cho khách muốn lựa chọn nhanh tại quán.",tea|peach|lemongrass|tea|l,true
