@@ -1,50 +1,51 @@
 import asyncio
 
-from app.agents.consultant_agent import consultant_agent
-from app.agents.faq_agent import faq_agent
-from app.agents.ignore_handler import ignore_handler
-from app.agents.order_agent import order_agent
-from app.core.constants import Intent
-from app.core.schemas import AgentInput, RAGQuery
+from app.core.schemas import ChatRequest
+from app.services.chat_service import chat_service
 
 
-async def run_case(text: str, intent: Intent):
-    agent_map = {
-        Intent.ORDER: order_agent,
-        Intent.CONSULTANT: consultant_agent,
-        Intent.FAQ: faq_agent,
-        Intent.IGNORE: ignore_handler,
-    }
-
-    agent = agent_map[intent]
-
-    output = await agent.run(
-        AgentInput(
-            session_id="sess_test",
+async def run_case(text: str, session_id=None):
+    result = await chat_service.chat(
+        ChatRequest(
             text=text,
-            intent=intent,
-            metadata={
-                "rag_query": RAGQuery(
-                    query=text,
-                    intent=intent,
-                )
-            },
+            session_id=session_id,
         )
     )
 
     print("\n" + "=" * 80)
-    print("INPUT:", text)
-    print("INTENT:", intent.value)
-    print("AGENT:", output.agent.value)
-    print("ANSWER:\n", output.answer)
-    print("SOURCES:", len(output.sources))
+    print("SESSION:", result.session_id)
+    print("INTENT:", result.intent.value)
+    print("AGENT:", result.agent.value)
+    print("LATENCY:", round(result.latency_ms, 2), "ms")
+    print("ANSWER:\n", result.answer)
+    print("SOURCES:", len(result.sources))
+
+    return result.session_id
 
 
 async def main():
-    await run_case("Cho anh một ly bạc xỉu đá", Intent.ORDER)
-    await run_case("Có gì ngon ít ngọt không em?", Intent.CONSULTANT)
-    await run_case("Wifi tên gì vậy?", Intent.FAQ)
-    await run_case("haha", Intent.IGNORE)
+
+    session_id = None
+
+    session_id = await run_case(
+        "Cho anh một ly bạc xỉu đá",
+        session_id,
+    )
+
+    session_id = await run_case(
+        "Wifi tên gì vậy?",
+        session_id,
+    )
+
+    session_id = await run_case(
+        "Có gì ngon ít ngọt không em?",
+        session_id,
+    )
+
+    session_id = await run_case(
+        "haha",
+        session_id,
+    )
 
 
 asyncio.run(main())
