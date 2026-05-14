@@ -1,35 +1,29 @@
 import asyncio
-from app.core.config import get_settings
-from app.core.schemas import ChatRequest, RouterOutput
-from app.core.constants import Intent
-from app.session.session_store import SessionStore
-from app.queueing.request_queue import QueueManager
+from app.agents.router_agent import router_agent
+from app.core.schemas import RouterInput
+
 
 async def main():
-    settings = get_settings()
-    print('settings:', settings.app_name, settings.llm_backend)
+    samples = [
+        "Cho anh một ly bạc xỉu đá",
+        "Tính tiền giúp anh",
+        "Có gì ngon rẻ không em?",
+        "Bạc xỉu ngon không?",
+        "Wifi tên gì vậy?",
+        "Mấy giờ đóng cửa?",
+        "haha",
+        "Trời mưa quá",
+        "Cho em một ly bạc xỉu, wifi là gì vậy?",
+    ]
 
-    req = ChatRequest(text='Cho anh một ly bạc xỉu đá')
-    print('chat request:', req.model_dump())
+    for i, text in enumerate(samples):
+        out = await router_agent.classify(
+            RouterInput(
+                session_id=f"sess_test_{i}",
+                text=text,
+            )
+        )
+        print(text, "=>", out.to_required_json(), out.confidence, out.metadata)
 
-    out = RouterOutput(action=Intent.ORDER, confidence=0.99)
-    print('router json:', out.to_required_json())
-
-    store = SessionStore()
-    sess = await store.get_or_create()
-    await store.add_user_message(sess.session_id, 'Có món nào ngon không?')
-    await store.add_assistant_message(sess.session_id, 'Dạ, em có thể gợi ý vài món ạ.')
-    loaded = await store.get(sess.session_id)
-    print('session:', loaded.session_id, len(loaded.history))
-
-    qm = QueueManager()
-
-    async def fake_job(x):
-        await asyncio.sleep(0.05)
-        return x * 2
-
-    result = await qm.router.run(fake_job, 21)
-    print('queue result:', result)
-    print('queue stats:', qm.stats())
 
 asyncio.run(main())
