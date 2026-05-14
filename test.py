@@ -1,29 +1,41 @@
 import asyncio
-from app.agents.router_agent import router_agent
-from app.core.schemas import RouterInput
+
+from app.core.constants import Intent
+from app.core.schemas import RAGQuery
+from app.rag.retriever import graph_retriever
 
 
 async def main():
+
     samples = [
-        "Cho anh một ly bạc xỉu đá",
-        "Tính tiền giúp anh",
-        "Có gì ngon rẻ không em?",
-        "Bạc xỉu ngon không?",
-        "Wifi tên gì vậy?",
-        "Mấy giờ đóng cửa?",
-        "haha",
-        "Trời mưa quá",
-        "Cho em một ly bạc xỉu, wifi là gì vậy?",
+        ("bạc xỉu", Intent.ORDER),
+        ("món ngon ít ngọt", Intent.CONSULTANT),
+        ("wifi", Intent.FAQ),
+        ("mấy giờ mở cửa", Intent.FAQ),
     ]
 
-    for i, text in enumerate(samples):
-        out = await router_agent.classify(
-            RouterInput(
-                session_id=f"sess_test_{i}",
-                text=text,
+    for query, intent in samples:
+        print("\n" + "=" * 80)
+        print(query, intent.value)
+
+        result = await graph_retriever.retrieve(
+            RAGQuery(
+                query=query,
+                intent=intent,
             )
         )
-        print(text, "=>", out.to_required_json(), out.confidence, out.metadata)
+
+        print("num sources:", len(result.sources))
+
+        for s in result.sources[:3]:
+            print(
+                s.source_type,
+                s.score,
+                s.text[:120],
+            )
+
+        print("\nCONTEXT:")
+        print(result.context_text[:500])
 
 
 asyncio.run(main())
