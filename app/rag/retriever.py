@@ -53,7 +53,6 @@ def extract_search_terms(text: str) -> list[str]:
 
     terms.extend(tokens)
 
-    # Ưu tiên phrase dài trước
     terms = sorted(set(terms), key=len, reverse=True)
 
     if not terms:
@@ -78,14 +77,14 @@ class GraphRetriever:
             menu_sources = self._retrieve_menu(terms)
             doc_sources = self._retrieve_docs(terms)
 
-            # Consultant ưu tiên menu hơn docs
+            # Consultant ưu tiên menu
             sources = self._merge_sources(menu_sources, doc_sources)
 
         elif intent == Intent.FAQ:
             faq_sources = self._retrieve_faq(terms)
             doc_sources = self._retrieve_docs(terms)
 
-            # FAQ ưu tiên FAQ hơn docs
+            # FAQ ưu tiên FAQ
             sources = self._merge_sources(faq_sources, doc_sources)
 
         else:

@@ -204,6 +204,9 @@ class RAGQuery(BaseModel):
     top_k: int = 5
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+    def copy_with_query(self, query: str) -> "RAGQuery":
+        return self.model_copy(update={"query": query})
+
 
 class RAGResult(BaseModel):
     query: str
