@@ -56,6 +56,27 @@ class Settings(BaseSettings):
     generator_model: str = Field(default="qwen2.5-7b-instruct-awq", alias="GENERATOR_MODEL")
     router_model: str = Field(default="router-rule-baseline", alias="ROUTER_MODEL")
 
+    # Generator
+    generator_backend: str = Field(
+        default="mock",
+        description="LLM backend: mock | sglang | vllm"
+    )
+
+    generator_model_name: str = Field(
+        default="mock-generator",
+        description="LLM model name"
+    )
+
+    generator_base_url: str = Field(
+        default="http://localhost:30000",
+        description="SGLang/vLLM endpoint"
+    )
+
+    generator_timeout: int = Field(
+        default=60,
+        description="Generator timeout in seconds"
+    )
+
     # RAG
     rag_top_k: int = Field(default=5, alias="RAG_TOP_K")
     rag_expansion_window: int = Field(default=1, alias="RAG_EXPANSION_WINDOW")

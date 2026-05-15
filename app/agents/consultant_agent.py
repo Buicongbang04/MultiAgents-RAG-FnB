@@ -1,6 +1,7 @@
 from app.agents.base import BaseAgent
 from app.core.constants import AgentName, Intent, Language, SourceType
 from app.core.schemas import AgentInput, AgentOutput
+from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
 
@@ -13,15 +14,16 @@ class ConsultantAgent(BaseAgent):
         )
 
         if not rag_result.has_context:
-            answer = (
+            fallback_answer = (
                 "Dạ, em chưa có đủ dữ liệu để tư vấn chính xác. "
-                "Anh/chị có thể cho em biết khẩu vị mong muốn như ít ngọt, đậm cà phê, "
-                "mát lạnh hoặc ngân sách khoảng bao nhiêu không ạ?"
+                "Anh/chị có thể cho em biết khẩu vị mong muốn như ít ngọt, "
+                "đậm cà phê, mát lạnh hoặc ngân sách khoảng bao nhiêu không ạ?"
             )
         else:
             menu_sources = [
-                s for s in rag_result.sources
-                if s.source_type == SourceType.MENU
+                source
+                for source in rag_result.sources
+                if source.source_type == SourceType.MENU
             ]
 
             if menu_sources:
@@ -29,26 +31,57 @@ class ConsultantAgent(BaseAgent):
                 for idx, src in enumerate(menu_sources[:3], start=1):
                     lines.append(f"{idx}. {src.text}")
 
-                answer = (
+                fallback_answer = (
                     "Dạ, dựa trên dữ liệu menu hiện có, em gợi ý một vài lựa chọn:\n"
                     + "\n".join(lines)
                     + "\n\nAnh/chị muốn em ưu tiên món ít ngọt, nhiều cà phê hay mát lạnh hơn ạ?"
                 )
             else:
-                answer = (
+                fallback_answer = (
                     "Dạ, em tìm thấy một số thông tin tư vấn liên quan:\n"
                     f"{rag_result.context_text}\n\n"
                     "Anh/chị có thể nói rõ khẩu vị để em gợi ý món phù hợp hơn ạ."
                 )
 
+        llm = get_llm_client()
+        llm_response = await llm.generate(
+            LLMGenerateRequest(
+                system_prompt=(
+                    "Bạn là Consultant Agent cho hệ thống F&B. "
+                    "Nhiệm vụ là gợi ý tối đa 3 món phù hợp dựa trên menu context, "
+                    "khẩu vị, ngân sách và nhu cầu người dùng. "
+                    "Không tự bịa món, giá hoặc thông tin ngoài context."
+                ),
+                user_prompt=agent_input.text,
+                context=rag_result.context_text,
+                history=[
+                    {"role": msg.role, "content": msg.content}
+                    for msg in agent_input.history
+                ],
+                metadata={
+                    "agent": self.name.value,
+                    "intent": Intent.CONSULTANT.value,
+                    "fallback_answer": fallback_answer,
+                    "rag": rag_result.metadata,
+                },
+            )
+        )
+
         return AgentOutput(
             session_id=agent_input.session_id,
             intent=Intent.CONSULTANT,
             agent=self.name,
-            answer=answer,
+            answer=llm_response.text,
             language=agent_input.language or Language.VI,
             sources=rag_result.sources,
-            metadata={"rag": rag_result.metadata},
+            metadata={
+                "rag": rag_result.metadata,
+                "llm": {
+                    "backend": llm_response.backend,
+                    "model": llm_response.model,
+                    **llm_response.metadata,
+                },
+            },
         )
 
 

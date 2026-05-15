@@ -1,6 +1,7 @@
 from app.agents.base import BaseAgent
 from app.core.constants import AgentName, Intent, Language
 from app.core.schemas import AgentInput, AgentOutput
+from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
 
@@ -13,7 +14,7 @@ class OrderAgent(BaseAgent):
         )
 
         if not rag_result.has_context:
-            answer = (
+            fallback_answer = (
                 "Dạ, em chưa tìm thấy món này trong menu hiện tại. "
                 "Anh/chị có thể nói rõ tên món hơn được không ạ?"
             )
@@ -23,31 +24,63 @@ class OrderAgent(BaseAgent):
             size = top.metadata.get("size")
             category = top.metadata.get("category")
 
-            answer = (
+            fallback_answer = (
                 "Dạ, em tìm thấy món phù hợp trong menu:\n"
                 f"{top.text}\n"
             )
 
             if price:
-                answer += f"Giá hiện tại: {price:,}đ"
-                if size:
-                    answer += f" | Size: {size}"
-                if category:
-                    answer += f" | Nhóm: {category}"
-                answer += "\n"
+                fallback_answer += f"Giá hiện tại: {price:,}đ"
 
-            answer += (
+            if size:
+                fallback_answer += f" | Size: {size}"
+
+            if category:
+                fallback_answer += f" | Nhóm: {category}"
+
+            fallback_answer += "\n"
+            fallback_answer += (
                 "MVP hiện tại chưa bật giỏ hàng, nên em chỉ xác nhận thông tin món trước ạ."
             )
+
+        llm = get_llm_client()
+        llm_response = await llm.generate(
+            LLMGenerateRequest(
+                system_prompt=(
+                    "Bạn là Order Agent cho hệ thống F&B. "
+                    "Chỉ xác nhận món dựa trên menu context. "
+                    "Không tự bịa món, giá, size hoặc chính sách."
+                ),
+                user_prompt=agent_input.text,
+                context=rag_result.context_text,
+                history=[
+                    {"role": msg.role, "content": msg.content}
+                    for msg in agent_input.history
+                ],
+                metadata={
+                    "agent": self.name.value,
+                    "intent": Intent.ORDER.value,
+                    "fallback_answer": fallback_answer,
+                    "rag": rag_result.metadata,
+                },
+            )
+        )
 
         return AgentOutput(
             session_id=agent_input.session_id,
             intent=Intent.ORDER,
             agent=self.name,
-            answer=answer,
+            answer=llm_response.text,
             language=agent_input.language or Language.VI,
             sources=rag_result.sources,
-            metadata={"rag": rag_result.metadata},
+            metadata={
+                "rag": rag_result.metadata,
+                "llm": {
+                    "backend": llm_response.backend,
+                    "model": llm_response.model,
+                    **llm_response.metadata,
+                },
+            },
         )
 
 
