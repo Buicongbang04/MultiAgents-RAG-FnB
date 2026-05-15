@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     rag_expansion_window: int = Field(default=1, alias="RAG_EXPANSION_WINDOW")
     rag_relevance_threshold: float = Field(default=0.70, alias="RAG_RELEVANCE_THRESHOLD")
 
+    # Embedding
+    embedding_backend: str = Field(default="mock", alias="EMBEDDING_BACKEND")
+    embedding_model: str = Field(default="mock-hash-embedding", alias="EMBEDDING_MODEL")
+    embedding_dim: int = Field(default=384, alias="EMBEDDING_DIM")
+
     # Streaming
     stream_token_delay_seconds: float = Field(default=0.01, alias="STREAM_TOKEN_DELAY_SECONDS")
     clause_min_chars: int = Field(default=12, alias="CLAUSE_MIN_CHARS")
