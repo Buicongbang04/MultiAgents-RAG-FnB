@@ -4,6 +4,7 @@ from app.core.schemas import AgentInput, AgentOutput
 from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
+from app.prompts import FAQ_SYSTEM_PROMPT
 
 class FAQAgent(BaseAgent):
     name = AgentName.FAQ
@@ -28,12 +29,7 @@ class FAQAgent(BaseAgent):
         llm = get_llm_client()
         llm_response = await llm.generate(
             LLMGenerateRequest(
-                system_prompt=(
-                    "Bạn là FAQ Agent cho hệ thống F&B. "
-                    "Chỉ trả lời dựa trên FAQ hoặc internal document context. "
-                    "Nếu không có thông tin trong context, phải nói là chưa tìm thấy. "
-                    "Không tự suy diễn thêm."
-                ),
+                system_prompt=FAQ_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
                 context=rag_result.context_text,
                 history=[

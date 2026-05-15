@@ -3,6 +3,7 @@ from app.core.constants import AgentName, Intent, Language
 from app.core.schemas import AgentInput, AgentOutput
 from app.llm import LLMGenerateRequest, get_llm_client
 
+from app.prompts import IGNORE_SYSTEM_PROMPT
 
 class IgnoreHandler(BaseAgent):
     name = AgentName.IGNORE
@@ -16,11 +17,7 @@ class IgnoreHandler(BaseAgent):
         llm = get_llm_client()
         llm_response = await llm.generate(
             LLMGenerateRequest(
-                system_prompt=(
-                    "Bạn là Ignore Handler cho hệ thống F&B. "
-                    "Khi người dùng nói câu mơ hồ, tiếng ồn hoặc không rõ ý định, "
-                    "hãy phản hồi ngắn gọn, lịch sự và gợi ý họ đặt món, hỏi FAQ hoặc cần tư vấn."
-                ),
+                system_prompt=IGNORE_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
                 context=None,
                 history=[

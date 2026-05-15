@@ -4,6 +4,8 @@ from app.core.schemas import AgentInput, AgentOutput
 from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
+from app.prompts import CONSULTANT_SYSTEM_PROMPT
+
 
 class ConsultantAgent(BaseAgent):
     name = AgentName.CONSULTANT
@@ -46,12 +48,7 @@ class ConsultantAgent(BaseAgent):
         llm = get_llm_client()
         llm_response = await llm.generate(
             LLMGenerateRequest(
-                system_prompt=(
-                    "Bạn là Consultant Agent cho hệ thống F&B. "
-                    "Nhiệm vụ là gợi ý tối đa 3 món phù hợp dựa trên menu context, "
-                    "khẩu vị, ngân sách và nhu cầu người dùng. "
-                    "Không tự bịa món, giá hoặc thông tin ngoài context."
-                ),
+                system_prompt=CONSULTANT_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
                 context=rag_result.context_text,
                 history=[

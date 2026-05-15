@@ -4,6 +4,8 @@ from app.core.schemas import AgentInput, AgentOutput
 from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
+from app.prompts import ORDER_SYSTEM_PROMPT
+
 
 class OrderAgent(BaseAgent):
     name = AgentName.ORDER
@@ -46,11 +48,7 @@ class OrderAgent(BaseAgent):
         llm = get_llm_client()
         llm_response = await llm.generate(
             LLMGenerateRequest(
-                system_prompt=(
-                    "Bạn là Order Agent cho hệ thống F&B. "
-                    "Chỉ xác nhận món dựa trên menu context. "
-                    "Không tự bịa món, giá, size hoặc chính sách."
-                ),
+                system_prompt=ORDER_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
                 context=rag_result.context_text,
                 history=[
