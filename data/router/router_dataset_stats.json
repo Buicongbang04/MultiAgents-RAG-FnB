@@ -1,0 +1,17 @@
+{
+  "total": 800,
+  "by_intent": {
+    "order": 200,
+    "ignore": 200,
+    "consultant": 200,
+    "faq": 200
+  },
+  "by_language": {
+    "vi": 587,
+    "en": 213
+  },
+  "by_difficulty": {
+    "easy": 680,
+    "hard": 120
+  }
+}
