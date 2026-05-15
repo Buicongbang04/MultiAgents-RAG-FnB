@@ -30,7 +30,7 @@ def create_constraints() -> None:
         REQUIRE c.id IS UNIQUE
         """,
         """
-        CREATE CONSTRAINT entity_name_unique IF NOT EXISTS
+        CREATE CONSTRAINT entity_key_unique IF NOT EXISTS
         FOR (e:Entity)
         REQUIRE e.key IS UNIQUE
         """,
@@ -48,10 +48,12 @@ def create_constraints() -> None:
 
 
 def clear_graph() -> None:
-    neo4j_client.execute_query("""
-    MATCH (n)
-    DETACH DELETE n
-    """)
+    neo4j_client.execute_query(
+        """
+        MATCH (n)
+        DETACH DELETE n
+        """
+    )
     print("Cleared graph")
 
 
@@ -62,23 +64,22 @@ def ingest_menu() -> None:
         reader = csv.DictReader(f)
 
         for row in reader:
-            query = """
-            MERGE (m:MenuItem {id: $id})
-            SET
-                m.name_vi = $name_vi,
-                m.name_en = $name_en,
-                m.price = $price,
-                m.size = $size,
-                m.category = $category,
-                m.description = $description,
-                m.available = $available
-
-            MERGE (c:Category {name: $category})
-            MERGE (m)-[:BELONGS_TO]->(c)
-            """
-
+            # Create MenuItem and Category
             neo4j_client.execute_query(
-                query,
+                """
+                MERGE (m:MenuItem {id: $id})
+                SET
+                    m.name_vi = $name_vi,
+                    m.name_en = $name_en,
+                    m.price = $price,
+                    m.size = $size,
+                    m.category = $category,
+                    m.description = $description,
+                    m.available = $available
+
+                MERGE (c:Category {name: $category})
+                MERGE (m)-[:BELONGS_TO]->(c)
+                """,
                 {
                     "id": row["id"],
                     "name_vi": row["name_vi"],
@@ -87,12 +88,16 @@ def ingest_menu() -> None:
                     "size": row["size"],
                     "category": row["category"],
                     "description": row["description"],
-                    "available": row["available"] == "true",
+                    "available": row["available"].strip().lower() == "true",
                 },
             )
 
-            ingredients = row["ingredients"].split("|")
-            tags = row["tags"].split("|")
+            # Ingredients
+            ingredients = [
+                x.strip()
+                for x in row["ingredients"].split("|")
+                if x.strip()
+            ]
 
             for ingredient in ingredients:
                 neo4j_client.execute_query(
@@ -101,7 +106,7 @@ def ingest_menu() -> None:
                     SET
                         e.name = $name,
                         e.type = 'ingredient'
-
+                    WITH e
                     MATCH (m:MenuItem {id: $menu_id})
                     MERGE (m)-[:HAS_INGREDIENT]->(e)
                     """,
@@ -112,6 +117,13 @@ def ingest_menu() -> None:
                     },
                 )
 
+            # Tags
+            tags = [
+                x.strip()
+                for x in row["tags"].split("|")
+                if x.strip()
+            ]
+
             for tag in tags:
                 neo4j_client.execute_query(
                     """
@@ -119,7 +131,7 @@ def ingest_menu() -> None:
                     SET
                         e.name = $name,
                         e.type = 'tag'
-
+                    WITH e
                     MATCH (m:MenuItem {id: $menu_id})
                     MERGE (m)-[:HAS_TAG]->(e)
                     """,
@@ -166,6 +178,7 @@ def ingest_docs() -> None:
         for line in f:
             doc = json.loads(line)
 
+            # Create Chunk
             neo4j_client.execute_query(
                 """
                 MERGE (c:Chunk {id: $id})
@@ -178,14 +191,15 @@ def ingest_docs() -> None:
                 doc,
             )
 
-            for entity in doc["entities"]:
+            # Create Entities and relationships
+            for entity in doc.get("entities", []):
                 neo4j_client.execute_query(
                     """
                     MERGE (e:Entity {key: $key})
                     SET
                         e.name = $name,
                         e.type = $type
-
+                    WITH e
                     MATCH (c:Chunk {id: $chunk_id})
                     MERGE (c)-[:MENTIONS]->(e)
                     """,
@@ -204,12 +218,12 @@ def ingest_docs() -> None:
 
 def graph_stats() -> None:
     queries = {
-        "MenuItems": "MATCH (n:MenuItem) RETURN count(n) as count",
-        "FAQ": "MATCH (n:FAQ) RETURN count(n) as count",
-        "Chunk": "MATCH (n:Chunk) RETURN count(n) as count",
-        "Entity": "MATCH (n:Entity) RETURN count(n) as count",
-        "Category": "MATCH (n:Category) RETURN count(n) as count",
-        "Relationships": "MATCH ()-[r]->() RETURN count(r) as count",
+        "MenuItems": "MATCH (n:MenuItem) RETURN count(n) AS count",
+        "FAQ": "MATCH (n:FAQ) RETURN count(n) AS count",
+        "Chunk": "MATCH (n:Chunk) RETURN count(n) AS count",
+        "Entity": "MATCH (n:Entity) RETURN count(n) AS count",
+        "Category": "MATCH (n:Category) RETURN count(n) AS count",
+        "Relationships": "MATCH ()-[r]->() RETURN count(r) AS count",
     }
 
     print("\n=== GRAPH STATS ===")

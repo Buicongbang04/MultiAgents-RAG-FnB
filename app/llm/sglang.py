@@ -59,6 +59,19 @@ class SGLangClient(BaseLLMClient):
         self,
         request: LLMGenerateRequest,
     ) -> LLMGenerateResponse:
+        
+        if request.metadata.get("fallback_answer") and not request.context:
+            return LLMGenerateResponse(
+                text=request.metadata["fallback_answer"],
+                backend=self.backend,
+                model=self.model,
+                metadata={
+                    "provider": "sglang",
+                    "fallback_used": True,
+                    "reason": "empty_context_guardrail",
+                },
+            )
+
         started = time.perf_counter()
 
         payload: Dict[str, Any] = {
