@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.core.constants import Intent
 from app.core.schemas import AgentOutput, ChatResponse
 from app.rag.embedding_client import get_embedding_client
+from app.cache.paraphrase import build_cache_hit_answer
 
 
 class CacheService:
@@ -200,21 +201,35 @@ class CacheService:
         latency_ms: float,
         router_metadata: Dict[str, Any],
         queue_stats: Dict[str, Any],
+        extraction: Optional[Dict[str, Any]] = None,
     ) -> ChatResponse:
         value = cached["value"]
+
+        intent = value["intent"]
+        if isinstance(intent, str):
+            intent = Intent(intent)
+
+        answer, paraphrase_metadata = build_cache_hit_answer(
+            cached_answer=value["answer"],
+            intent=intent,
+            extraction=extraction,
+        )
+
+        cache_metadata = dict(cached["metadata"])
+        cache_metadata["paraphrase"] = paraphrase_metadata
 
         return ChatResponse(
             session_id=session_id,
             intent=value["intent"],
             agent=value["agent"],
-            answer=value["answer"],
+            answer=answer,
             language=value["language"],
             sources=value["sources"],
             latency_ms=latency_ms,
             metadata={
                 "router": router_metadata,
                 "queue_stats": queue_stats,
-                "cache": cached["metadata"],
+                "cache": cache_metadata,
             },
         )
     

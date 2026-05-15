@@ -1,0 +1,17 @@
+{
+  "total": 1000,
+  "by_intent": {
+    "order": 250,
+    "ignore": 250,
+    "consultant": 250,
+    "faq": 250
+  },
+  "by_language": {
+    "vi": 696,
+    "en": 304
+  },
+  "hard_count": 120,
+  "hard_ratio": 0.12,
+  "empty_action": 0,
+  "empty_cache_key": 0
+}

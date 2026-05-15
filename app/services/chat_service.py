@@ -13,6 +13,11 @@ from app.core.schemas import (
 )
 from app.queueing.request_queue import queue_manager
 from app.session.session_store import session_store
+from app.cache.intent_extractor import (
+    IntentExtractionInput,
+    get_intent_extractor,
+)
+from app.core.config import get_settings
 
 logger = get_logger(__name__)
 
@@ -54,9 +59,47 @@ class ChatService:
             ),
         )
 
+        settings = get_settings()
+        extraction = None
+        cache_lookup_text = request.text
+
+        if getattr(settings, "intent_extractor_enabled", True):
+            try:
+                extraction = await get_intent_extractor().extract(
+                    IntentExtractionInput(
+                        session_id=session.session_id,
+                        text=request.text,
+                        intent=router_output.action,
+                        language=router_output.language,
+                        history=session.recent_history(),
+                    )
+                )
+
+                if extraction.cache_key.strip():
+                    cache_lookup_text = extraction.cache_key.strip()
+
+                logger.info(
+                    "Intent extracted session=%s intent=%s cache_key=%s action=%s context=%s",
+                    session.session_id,
+                    router_output.action.value,
+                    cache_lookup_text,
+                    extraction.action,
+                    extraction.context,
+                )
+
+            except Exception as exc:
+                logger.warning(
+                    "Intent extraction failed session=%s intent=%s error=%s",
+                    session.session_id,
+                    router_output.action.value,
+                    exc,
+                )
+                extraction = None
+                cache_lookup_text = request.text
+
         cached = cache_service.get_exact(
             router_output.action,
-            request.text,
+            cache_lookup_text,
         )
 
         if cached is not None:
@@ -70,7 +113,7 @@ class ChatService:
             try:
                 cached = await cache_service.get_semantic(
                     router_output.action,
-                    request.text,
+                    cache_lookup_text,
                 )
 
                 if cached is not None:
@@ -103,7 +146,7 @@ class ChatService:
                 try:
                     await cache_service.backfill_semantic_from_cached_value(
                         router_output.action,
-                        request.text,
+                        cache_lookup_text,
                         cached["value"],
                     )
                 except Exception as exc:
@@ -121,13 +164,21 @@ class ChatService:
                 cached["value"]["answer"],
             )
 
-            return cache_service.build_chat_response_from_hit(
+            response = cache_service.build_chat_response_from_hit(
                 session_id=session.session_id,
                 cached=cached,
                 latency_ms=latency_ms,
                 router_metadata=router_output.metadata,
                 queue_stats=queue_manager.stats(),
+                extraction=extraction.model_dump() if extraction else None,
             )
+
+            response.metadata["extraction"] = (
+                extraction.model_dump() if extraction else None
+            )
+            response.metadata["cache_lookup_text"] = cache_lookup_text
+
+            return response
 
         agent = agent_dispatcher.get_agent(router_output.action)
 
@@ -144,7 +195,9 @@ class ChatService:
                         query=request.text,
                         intent=router_output.action,
                         language=router_output.language,
-                    )
+                    ),
+                    "extraction": extraction.model_dump() if extraction else None,
+                    "cache_lookup_text": cache_lookup_text,
                 },
             ),
         )
@@ -152,7 +205,7 @@ class ChatService:
         try:
             cache_metadata = await cache_service.save_from_agent_output(
                 router_output.action,
-                request.text,
+                cache_lookup_text,
                 agent_output,
             )
 
@@ -203,7 +256,9 @@ class ChatService:
                 "router": router_output.metadata,
                 "queue_stats": queue_manager.stats(),
                 "cache": cache_metadata,
-            },
+                "extraction": extraction.model_dump() if extraction else None,
+                "cache_lookup_text": cache_lookup_text,
+            }
         )
 
 

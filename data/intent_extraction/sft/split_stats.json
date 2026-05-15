@@ -1,0 +1,47 @@
+{
+  "train": {
+    "total": 800,
+    "by_intent": {
+      "consultant": 200,
+      "faq": 200,
+      "ignore": 200,
+      "order": 200
+    },
+    "by_language": {
+      "en": 242,
+      "vi": 558
+    },
+    "hard_count": 92,
+    "hard_ratio": 0.115
+  },
+  "val": {
+    "total": 100,
+    "by_intent": {
+      "consultant": 25,
+      "faq": 25,
+      "ignore": 25,
+      "order": 25
+    },
+    "by_language": {
+      "en": 33,
+      "vi": 67
+    },
+    "hard_count": 18,
+    "hard_ratio": 0.18
+  },
+  "test": {
+    "total": 100,
+    "by_intent": {
+      "consultant": 25,
+      "faq": 25,
+      "ignore": 25,
+      "order": 25
+    },
+    "by_language": {
+      "en": 29,
+      "vi": 71
+    },
+    "hard_count": 10,
+    "hard_ratio": 0.1
+  }
+}
