@@ -5,77 +5,8 @@ from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
 from app.prompts import ORDER_SYSTEM_PROMPT
+from app.agents.context_builders import build_order_structured_context
 
-# ======= Helper function =======
-
-def format_vnd(price: int) -> str:
-    return f"{price:,}".replace(",", ".") + "đ"
-
-def build_order_structured_context(user_text: str, sources) -> str:
-    if not sources:
-        return ""
-
-    user_text_lower = user_text.lower()
-
-    exact_sources = [
-        source for source in sources
-        if source.text.split("|")[0].strip().lower() in user_text_lower
-    ]
-
-    best_source = exact_sources[0] if exact_sources else sources[0]
-
-    price = best_source.metadata.get("price")
-    size = best_source.metadata.get("size")
-    category = best_source.metadata.get("category")
-
-    best_lines = [
-        "BEST_MATCH:",
-        f"- id: {best_source.source_id}",
-        f"- item: {best_source.text.split('|')[0].strip()}",
-    ]
-
-    if price:
-        best_lines.append(f"- price: {format_vnd(price)}")
-
-    if size:
-        best_lines.append(f"- size: {size}")
-
-    if category:
-        best_lines.append(f"- category: {category}")
-
-    alternative_lines = ["", "ALTERNATIVES:"]
-
-    for source in sources:
-        if source.source_id == best_source.source_id:
-            continue
-
-        item_name = source.text.split("|")[0].strip()
-        alt_price = source.metadata.get("price")
-        alt_size = source.metadata.get("size")
-
-        line = f"- {item_name}"
-
-        if alt_size:
-            line += f" | size: {alt_size}"
-
-        if alt_price:
-            line += f" | price: {format_vnd(alt_price)}"
-
-        alternative_lines.append(line)
-
-    instruction_lines = [
-        "",
-        "ORDER_RULES:",
-        "- Use BEST_MATCH as the primary item.",
-        "- Do not confirm the order as completed.",
-        "- Ask the customer to confirm before adding to cart.",
-        "- Do not calculate total price.",
-        "- Do not invent item, size, price, topping, or discount.",
-    ]
-
-    return "\n".join(best_lines + alternative_lines + instruction_lines)
-
-# ===============================
 
 class OrderAgent(BaseAgent):
     name = AgentName.ORDER

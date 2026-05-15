@@ -5,6 +5,7 @@ from app.llm import LLMGenerateRequest, get_llm_client
 from app.rag.retriever import graph_retriever
 
 from app.prompts import CONSULTANT_SYSTEM_PROMPT
+from app.agents.context_builders import build_consultant_structured_context
 
 
 class ConsultantAgent(BaseAgent):
@@ -13,6 +14,10 @@ class ConsultantAgent(BaseAgent):
     async def run(self, agent_input: AgentInput) -> AgentOutput:
         rag_result = await graph_retriever.retrieve(
             rag_query=agent_input.metadata["rag_query"]
+        )
+
+        structured_context = build_consultant_structured_context(
+            sources=rag_result.sources,
         )
 
         if not rag_result.has_context:
@@ -50,7 +55,7 @@ class ConsultantAgent(BaseAgent):
             LLMGenerateRequest(
                 system_prompt=CONSULTANT_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
-                context=rag_result.context_text,
+                context=structured_context,
                 history=[
                     {"role": msg.role, "content": msg.content}
                     for msg in agent_input.history
