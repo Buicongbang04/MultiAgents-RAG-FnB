@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 set -e
 
 echo "=================================================="
@@ -7,38 +5,47 @@ echo "MultiAgents-RAG-FnB Restart Script"
 echo "=================================================="
 
 PROJECT_DIR="$HOME/Documents/MultiAgents-RAG-FnB"
+CONDA_ENV="fiai"
+NEO4J_CONTAINER="neo4j-fnb"
+NEO4J_PASSWORD="bangbcfiai"
 
 cd "$PROJECT_DIR"
 
-echo "Activating conda env: fiai"
+echo "[INFO] Project dir: $PROJECT_DIR"
 
-# source ~/miniconda3/etc/profile.d/conda.sh
-# conda activate fiai
-
-echo "Checking Neo4j..."
-
-if ! pgrep -f "neo4j" > /dev/null; then
-    echo "[INFO] Starting Neo4j..."
-    docker run \
-    --name neo4j-fnb \
-    -p7474:7474 \
-    -p7687:7687 \
-    -e NEO4J_AUTH=neo4j/bangbcfiai \
-    -d neo4j:5
-else
-    echo "[INFO] Neo4j already running"
+if [ ! -f ".env" ]; then
+    echo "[WARN] .env file not found. Please create .env before running production mode."
 fi
 
-sleep 5
+echo "[INFO] Activating conda env: $CONDA_ENV"
+source "$HOME/miniconda3/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV"
 
-echo "Checking embedding graph..."
+echo "[INFO] Checking Neo4j Docker container..."
 
-python -m scripts.embed_graph || true
+if docker ps --format '{{.Names}}' | grep -q "^${NEO4J_CONTAINER}$"; then
+    echo "[INFO] Neo4j already running"
+elif docker ps -a --format '{{.Names}}' | grep -q "^${NEO4J_CONTAINER}$"; then
+    echo "[INFO] Neo4j container exists but stopped. Starting..."
+    docker start "$NEO4J_CONTAINER"
+else
+    echo "[INFO] Creating and starting Neo4j container..."
+    docker run \
+        --name "$NEO4J_CONTAINER" \
+        -p 7474:7474 \
+        -p 7687:7687 \
+        -e NEO4J_AUTH=neo4j/${NEO4J_PASSWORD} \
+        -d neo4j:5
+fi
 
-echo "Quick RAG sanity check..."
+echo "[INFO] Waiting for Neo4j..."
+sleep 8
 
-python -m tests.rag_retrieval_benchmark || true
+echo "[INFO] Embedding graph if needed..."
+python -m scripts.embed_graph || echo "[WARN] embed_graph failed or skipped"
 
-echo "Starting FastAPI..."
+echo "[INFO] Quick RAG sanity check..."
+python -m tests.rag_retrieval_benchmark || echo "[WARN] RAG benchmark failed or skipped"
 
-python run.py 
+echo "[INFO] Starting FastAPI..."
+python run.py
