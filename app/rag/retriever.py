@@ -1,11 +1,13 @@
 import re
 from collections import defaultdict
+import math
 
 from app.core.config import get_settings
 from app.core.constants import Intent, SourceType
 from app.core.logging import get_logger
 from app.core.schemas import RAGQuery, RAGResult, RetrievedSource
 from app.rag.neo4j_client import neo4j_client
+from app.rag.embedding_client import get_embedding_client
 
 logger = get_logger(__name__)
 
@@ -108,6 +110,80 @@ class GraphRetriever:
             sources=top_sources,
             context_text=context_text,
             metadata={"terms": terms},
+        )
+
+    async def retrieve_by_vector(
+        self,
+        rag_query: RAGQuery,
+        top_k: int | None = None,
+    ) -> RAGResult:
+        query = rag_query.query.strip()
+        top_k = top_k or rag_query.top_k or self.settings.rag_top_k
+
+        embedding_client = get_embedding_client()
+        query_embedding = await embedding_client.embed_text(query)
+
+        if rag_query.intent == Intent.ORDER:
+            sources = self._retrieve_menu_by_vector(query_embedding)
+        elif rag_query.intent == Intent.FAQ:
+            sources = self._retrieve_faq_by_vector(query_embedding)
+            sources.extend(self._retrieve_chunks_by_vector(query_embedding))
+        elif rag_query.intent == Intent.CONSULTANT:
+            sources = self._retrieve_menu_by_vector(query_embedding)
+            sources.extend(self._retrieve_faq_by_vector(query_embedding))
+            sources.extend(self._retrieve_chunks_by_vector(query_embedding))
+        else:
+            sources = []
+
+        sources = self._deduplicate_sources(sources)
+        sources = sorted(sources, key=lambda x: x.score, reverse=True)
+        sources = sources[:top_k]
+
+        return RAGResult(
+            query=query,
+            sources=sources,
+            context_text=self._build_context(sources),
+            metadata={
+                "retrieval_mode": "vector",
+                "top_k": top_k,
+            },
+        )
+    
+    async def retrieve_hybrid(
+        self,
+        rag_query: RAGQuery,
+        keyword_weight: float = 0.65,
+        vector_weight: float = 0.35,
+    ) -> RAGResult:
+
+        keyword_result = await self.retrieve(rag_query)
+        vector_result = await self.retrieve_by_vector(rag_query)
+
+        fused_sources = self._late_fusion(
+            keyword_sources=keyword_result.sources,
+            vector_sources=vector_result.sources,
+            keyword_weight=keyword_weight,
+            vector_weight=vector_weight,
+            top_k=rag_query.top_k or self.settings.rag_top_k,
+        )
+
+        if rag_query.intent == Intent.FAQ:
+            fused_sources = self._apply_faq_domain_boost(
+                query=rag_query.query,
+                sources=fused_sources,
+            )
+
+        return RAGResult(
+            query=rag_query.query,
+            sources=fused_sources,
+            context_text=self._build_context(fused_sources),
+            metadata={
+                "retrieval_mode": "hybrid",
+                "keyword_count": len(keyword_result.sources),
+                "vector_count": len(vector_result.sources),
+                "keyword_weight": keyword_weight,
+                "vector_weight": vector_weight,
+            },
         )
 
     def _retrieve_menu(self, terms: list[str]) -> list[RetrievedSource]:
@@ -272,5 +348,223 @@ class GraphRetriever:
 
         return "\n\n".join(sections)
 
+    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
+        if not a or not b or len(a) != len(b):
+            return 0.0
+
+        dot = sum(x * y for x, y in zip(a, b))
+        norm_a = math.sqrt(sum(x * x for x in a))
+        norm_b = math.sqrt(sum(y * y for y in b))
+
+        if norm_a == 0.0 or norm_b == 0.0:
+            return 0.0
+
+        return dot / (norm_a * norm_b)
+    
+    def _retrieve_menu_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (m:MenuItem)
+            WHERE m.embedding IS NOT NULL
+            RETURN
+                m.id AS id,
+                m.name_vi AS name,
+                m.name_en AS name_en,
+                m.description AS description,
+                m.price AS price,
+                m.category AS category,
+                m.size AS size,
+                m.embedding AS embedding
+            LIMIT 500
+            """
+        )
+
+        sources = []
+        for row in rows:
+            score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
+            if score < 0.05:
+                continue
+
+            text = (
+                f"{row.get('name') or ''} | "
+                f"{row.get('category') or ''} | "
+                f"{row.get('price') or ''} VND | "
+                f"Size {row.get('size') or ''} | "
+                f"{row.get('description') or ''}"
+            )
+
+            sources.append(
+                RetrievedSource(
+                    source_id=row["id"],
+                    source_type=SourceType.MENU,
+                    text=text,
+                    score=score,
+                    metadata={
+                        "retrieval_mode": "vector",
+                        "price": row.get("price"),
+                        "category": row.get("category"),
+                        "size": row.get("size"),
+                    },
+                )
+            )
+
+        return sources
+    
+    def _retrieve_faq_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (f:FAQ)
+            WHERE f.embedding IS NOT NULL
+            RETURN
+                f.id AS id,
+                f.topic AS topic,
+                f.question AS question,
+                f.answer AS answer,
+                f.embedding AS embedding
+            LIMIT 500
+            """
+        )
+
+        sources = []
+        for row in rows:
+            score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
+            if score < 0.05:
+                continue
+
+            sources.append(
+                RetrievedSource(
+                    source_id=row["id"],
+                    source_type=SourceType.FAQ,
+                    text=f"Q: {row.get('question') or ''}\nA: {row.get('answer') or ''}",
+                    score=score,
+                    metadata={
+                        "retrieval_mode": "vector",
+                        "topic": row.get("topic"),
+                    },
+                )
+            )
+
+        return sources
+    
+    def _retrieve_chunks_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (c:Chunk)
+            WHERE c.embedding IS NOT NULL
+            RETURN
+                c.id AS id,
+                c.text AS text,
+                c.embedding AS embedding
+            LIMIT 500
+            """
+        )
+
+        sources = []
+        for row in rows:
+            score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
+            if score < 0.05:
+                continue
+
+            sources.append(
+                RetrievedSource(
+                    source_id=row["id"],
+                    source_type=SourceType.DOCUMENT,
+                    text=row.get("text") or "",
+                    score=score,
+                    metadata={
+                        "retrieval_mode": "vector",
+                    },
+                )
+            )
+
+        return sources
+
+    def _late_fusion(
+        self,
+        keyword_sources: list[RetrievedSource],
+        vector_sources: list[RetrievedSource],
+        keyword_weight: float,
+        vector_weight: float,
+        top_k: int,
+    ) -> list[RetrievedSource]:
+
+        merged: dict[str, RetrievedSource] = {}
+
+        for source in keyword_sources:
+            source.score = source.score * keyword_weight
+
+            merged[source.source_id] = source
+
+        for source in vector_sources:
+            weighted_score = source.score * vector_weight
+
+            if source.source_id in merged:
+                merged[source.source_id].score += weighted_score
+
+                retrieval_modes = merged[source.source_id].metadata.get(
+                    "retrieval_modes",
+                    []
+                )
+
+                retrieval_modes.append("vector")
+
+                merged[source.source_id].metadata[
+                    "retrieval_modes"
+                ] = retrieval_modes
+
+            else:
+                source.score = weighted_score
+
+                source.metadata["retrieval_modes"] = [
+                    "vector"
+                ]
+
+                merged[source.source_id] = source
+
+        final_sources = list(merged.values())
+
+        final_sources.sort(
+            key=lambda x: x.score,
+            reverse=True
+        )
+
+        return final_sources[:top_k]
+
+    def _apply_faq_domain_boost(
+        self,
+        query: str,
+        sources: list[RetrievedSource],
+    ) -> list[RetrievedSource]:
+
+        q = query.lower()
+
+        faq_boost_rules = {
+            "wifi": ["wifi", "wi-fi", "internet", "mạng", "mat khau", "mật khẩu", "password"],
+            "opening_hours": ["giờ", "mấy giờ", "đóng cửa", "mở cửa", "open", "close"],
+            "delivery": ["ship", "giao hàng", "delivery", "mang đi", "take away"],
+            "size": ["size", "kích cỡ", "cỡ ly", "s m l"],
+        }
+
+        matched_topics = []
+
+        for topic, keywords in faq_boost_rules.items():
+            if any(keyword in q for keyword in keywords):
+                matched_topics.append(topic)
+
+        if not matched_topics:
+            return sources
+
+        for source in sources:
+            text = source.text.lower()
+            metadata_topic = str(source.metadata.get("topic", "")).lower()
+
+            for topic in matched_topics:
+                if topic in metadata_topic or topic in text:
+                    source.score += 0.35
+                    source.metadata["faq_domain_boost"] = topic
+
+        sources.sort(key=lambda x: x.score, reverse=True)
+
+        return sources
 
 graph_retriever = GraphRetriever()
