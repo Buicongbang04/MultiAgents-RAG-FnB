@@ -148,6 +148,14 @@ class Settings(BaseSettings):
     cacheable_intents: str = Field(default="faq,consultant,ignore", alias="CACHEABLE_INTENTS")
     cache_skip_intents: str = Field(default="order", alias="CACHE_SKIP_INTENTS")
 
+    # Semantic Cache
+    semantic_cache_enabled: bool = Field(default=True, alias="SEMANTIC_CACHE_ENABLED")
+    semantic_cache_ttl_seconds: int = Field(default=1800, alias="SEMANTIC_CACHE_TTL_SECONDS")
+    semantic_cache_max_size: int = Field(default=1000, alias="SEMANTIC_CACHE_MAX_SIZE")
+    semantic_cache_faq_threshold: float = Field(default=0.95, alias="SEMANTIC_CACHE_FAQ_THRESHOLD")
+    semantic_cache_consultant_threshold: float = Field(default=0.94, alias="SEMANTIC_CACHE_CONSULTANT_THRESHOLD")
+    semantic_cache_ignore_threshold: float = Field(default=0.97, alias="SEMANTIC_CACHE_IGNORE_THRESHOLD")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
