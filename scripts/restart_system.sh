@@ -17,9 +17,6 @@ if [ ! -f ".env" ]; then
     echo "[WARN] .env file not found. Please create .env before running production mode."
 fi
 
-echo "[INFO] Activating conda env: $CONDA_ENV"
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV"
 
 echo "[INFO] Checking Neo4j Docker container..."
 

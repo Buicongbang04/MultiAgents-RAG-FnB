@@ -22,3 +22,5 @@ accelerate
 bitsandbytes>=0.44.0
 scikit-learn
 trl
+chainlit==2.0.3
+httpx

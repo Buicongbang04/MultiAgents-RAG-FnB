@@ -256,7 +256,7 @@ curl http://localhost:30000/v1/models
 Run ingestion:
 
 ```bash
-python scripts/ingest_all.py
+python -m scripts.ingest_mock_to_neo4j
 ```
 
 Expected:
