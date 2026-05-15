@@ -5,6 +5,9 @@ from collections import Counter
 
 DATASET_PATH = Path("data/router/router_dataset_800.json")
 
+EXPECTED_TOTAL = 800
+EXPECTED_PER_INTENT = 200
+
 REQUIRED_FIELDS = {
     "text",
     "label",
@@ -34,7 +37,9 @@ def main():
     data = load_dataset()
 
     assert isinstance(data, list), "Dataset must be a list"
-    assert len(data) == 4000, f"Expected 4000 samples, got {len(data)}"
+    assert len(data) == EXPECTED_TOTAL, (
+        f"Expected {EXPECTED_TOTAL} samples, got {len(data)}"
+    )
 
     texts = []
     intents = Counter()
@@ -75,7 +80,9 @@ def main():
     assert duplicate_count == 0, f"Found {duplicate_count} duplicate texts"
 
     for intent in INTENT_LABELS:
-        assert intents[intent] == 1000, f"{intent} count != 1000: {intents[intent]}"
+        assert intents[intent] == EXPECTED_PER_INTENT, (
+            f"{intent} count != {EXPECTED_PER_INTENT}: {intents[intent]}"
+        )
 
     hard_ratio = difficulties["hard"] / len(data)
     assert 0.05 <= hard_ratio <= 0.20, f"Hard ratio out of range: {hard_ratio:.2%}"

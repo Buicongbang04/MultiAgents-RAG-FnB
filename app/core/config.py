@@ -105,9 +105,48 @@ class Settings(BaseSettings):
         alias="EMBEDDING_BATCH_SIZE",
     )
 
+    # Router
+    router_backend: Literal["rule_based", "hf_lora", "hf_merged"] = Field(
+        default="rule_based",
+        alias="ROUTER_BACKEND",
+    )
+
+    router_base_model: str = Field(
+        default="Qwen/Qwen2.5-0.5B-Instruct",
+        alias="ROUTER_BASE_MODEL",
+    )
+
+    router_adapter_dir: str = Field(
+        default="models/router-qwen2.5-0.5b-lora",
+        alias="ROUTER_ADAPTER_DIR",
+    )
+
+    router_merged_model_dir: str = Field(
+        default="models/router-qwen2.5-0.5b-merged",
+        alias="ROUTER_MERGED_MODEL_DIR",
+    )
+
+    router_max_new_tokens: int = Field(
+        default=8,
+        alias="ROUTER_MAX_NEW_TOKENS",
+    )
+
+    router_device: str = Field(
+        default="cuda",
+        alias="ROUTER_DEVICE",
+    )
+
     # Streaming
     stream_token_delay_seconds: float = Field(default=0.01, alias="STREAM_TOKEN_DELAY_SECONDS")
     clause_min_chars: int = Field(default=12, alias="CLAUSE_MIN_CHARS")
+
+    # Cache
+    cache_enabled: bool = Field(default=True, alias="CACHE_ENABLED")
+    exact_cache_enabled: bool = Field(default=True, alias="EXACT_CACHE_ENABLED")
+    exact_cache_ttl_seconds: int = Field(default=1800, alias="EXACT_CACHE_TTL_SECONDS")
+    exact_cache_max_size: int = Field(default=1000, alias="EXACT_CACHE_MAX_SIZE")
+    cacheable_intents: str = Field(default="faq,consultant,ignore", alias="CACHEABLE_INTENTS")
+    cache_skip_intents: str = Field(default="order", alias="CACHE_SKIP_INTENTS")
 
 
 @lru_cache(maxsize=1)

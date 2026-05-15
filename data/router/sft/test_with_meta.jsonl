@@ -1,0 +1,80 @@
+{"text": "Em lấy bánh mì que size L", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "này giúp mik với", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Mình muốn gọi một latte nhé", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Cho xem cappuccino size M nhé", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Internet ở đây dùng sao? giúp mik với", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Order giúp mình 2 bánh mì que giúp mình với", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào ngon không?", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào rẻ k? em nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào ngon ko? ạ", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "test", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "hmm not sure please", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Bên mình mấy giờ nghỉ?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Wf quán là gì?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Do you have takeaway? please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Any drink for hot weather?", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "test ạ", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Mấy giờ đóng cửa? giúp mình với", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Size ly bên mình như nào?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Có món nào dễ uống không? em nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "What sizes are available? please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào cho người không uống cà phê không? ạ", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Anh muốn bánh ngọt S", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Order giúp mình 1 latte", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có bánh mì que thì cho một phần ạ", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Do you have takeaway? for me please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "haha giúp mik với", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có gì ngon rẻ không?", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Cho mình cà phê đen đá ít đá", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Món nào phù hợp cho buổi sáng? em nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Quán mở cửa mấy giờ?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Mạng ở đây có dùng dc ko? em nhé", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Lấy cho tôi hai caramel freeze ạ", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "ờ ạ", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "hihi em nhé", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào dễ uống không? nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "What time do you open? thanks", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Where is the store? please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Any drink for hot weather? for me please", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Có món nào rẻ ko? nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "ừ", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Can I have latte with less sugar? for me please", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Can I use the internet here? please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Do you still have peach tea? thanks", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "ừm để xem", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "đợi chút ạ", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "ừm để xem giúp anh nhé", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "oke", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Quán mở cửa mấy giờ? ạ", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "hello giúp mình với", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "I don't know what to choose", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Order giúp mình một bánh mì que", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "One cake please please", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Any good blended drink? thanks", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Where is the store? for me please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "What is good for a tea lover? please", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "I would like cappuccino size L thanks", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "à em nhé", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có gì nhẹ nhẹ dễ uống không? nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "xin chào", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Do you still have peach tea? for me please", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Any good blended drink? please", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Order giúp mình 3 trà sen vàng", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Cho xem cappuccino size M ạ", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "What time do you open? for me please", "intent": "faq", "label": 2, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "What is good but not too expensive?", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "nghe rõ không", "intent": "ignore", "label": 3, "is_noise": true, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Wifi bên mình sao nhỉ?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "hard", "source": "hard_seed"}
+{"text": "hmmm", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Có chỗ ngồi làm việc k? nhé", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "hey thanks", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Get me two iced milk coffee", "intent": "order", "label": 0, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Món nào phù hợp cho buổi sáng? giúp anh nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Có chỗ ngồi làm việc không? nhé", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "wait a second", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "hard", "source": "hard_seed"}
+{"text": "Gọi thêm trà xanh nhé", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "What should I drink today? for me please", "intent": "consultant", "label": 1, "is_noise": false, "language": "en", "difficulty": "easy", "source": "template"}
+{"text": "Wf quan là gì?", "intent": "faq", "label": 2, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Món nào hợp cho người thích trà? em nhé", "intent": "consultant", "label": 1, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "Cho em 2 cà phê sữa đá", "intent": "order", "label": 0, "is_noise": false, "language": "vi", "difficulty": "easy", "source": "template"}
+{"text": "are you there please", "intent": "ignore", "label": 3, "is_noise": true, "language": "en", "difficulty": "easy", "source": "template"}

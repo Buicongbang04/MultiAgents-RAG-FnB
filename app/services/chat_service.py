@@ -12,6 +12,7 @@ from app.core.schemas import (
 )
 from app.queueing.request_queue import queue_manager
 from app.session.session_store import session_store
+from app.cache.cache_service import cache_service
 
 logger = get_logger(__name__)
 
@@ -62,6 +63,40 @@ class ChatService:
                 language=request.language,
             ),
         )
+
+        cached = cache_service.get_exact(
+            router_output.action,
+            request.text,
+        )
+
+        if cached is not None:
+            latency_ms = (time.perf_counter() - start) * 1000
+
+            await session_store.add_assistant_message(
+                session.session_id,
+                cached["value"]["answer"],
+            )
+
+            logger.info(
+                (
+                    "Chat cache hit "
+                    "session=%s "
+                    "intent=%s "
+                    "cache_type=exact "
+                    "latency=%.2fms"
+                ),
+                session.session_id,
+                router_output.action.value,
+                latency_ms,
+            )
+
+            return cache_service.build_chat_response_from_hit(
+                session_id=session.session_id,
+                cached=cached,
+                latency_ms=latency_ms,
+                router_metadata=router_output.metadata,
+                queue_stats=queue_manager.stats(),
+            )
 
         # --------------
         # Dispatch agent
@@ -115,6 +150,18 @@ class ChatService:
             latency_ms,
         )
 
+        cache_metadata = cache_service.set_exact_from_agent_output(
+            router_output.action,
+            request.text,
+            agent_output,
+        ) or {
+            "enabled": cache_service.enabled,
+            "hit": False,
+            "cache_type": "exact",
+            "stored": False,
+            "reason": "intent_not_cacheable_or_empty_answer",
+        }
+
         return ChatResponse(
             session_id=session.session_id,
             intent=router_output.action,
@@ -126,6 +173,7 @@ class ChatService:
             metadata={
                 "router": router_output.metadata,
                 "queue_stats": queue_manager.stats(),
+                "cache": cache_metadata,
             },
         )
 
