@@ -6,7 +6,7 @@ from app.api.routes import router
 from app.session.session_store import (
     session_store,
 )
-
+from app.middleware.rate_limit import InMemoryRateLimitMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,3 +25,9 @@ app = FastAPI(
 )
 
 app.include_router(router)
+
+app.add_middleware(
+    InMemoryRateLimitMiddleware,
+    max_requests=60,
+    window_seconds=60,
+)

@@ -156,38 +156,50 @@ class Settings(BaseSettings):
     semantic_cache_consultant_threshold: float = Field(default=0.94, alias="SEMANTIC_CACHE_CONSULTANT_THRESHOLD")
     semantic_cache_ignore_threshold: float = Field(default=0.97, alias="SEMANTIC_CACHE_IGNORE_THRESHOLD")
 
-    # Intent Extraction / Intelligent Cache Key
+    # Intent Extractor 
     intent_extractor_enabled: bool = Field(
         default=True,
         alias="INTENT_EXTRACTOR_ENABLED",
     )
+
     intent_extractor_backend: Literal["rule_based", "hf_lora", "hf_merged"] = Field(
         default="rule_based",
         alias="INTENT_EXTRACTOR_BACKEND",
     )
+
     intent_extractor_base_model: str = Field(
         default="Qwen/Qwen2.5-0.5B-Instruct",
         alias="INTENT_EXTRACTOR_BASE_MODEL",
     )
+
     intent_extractor_adapter_dir: str = Field(
         default="models/intent-extractor-qwen2.5-0.5b-lora",
         alias="INTENT_EXTRACTOR_ADAPTER_DIR",
     )
+
     intent_extractor_merged_model_dir: str = Field(
         default="models/intent-extractor-qwen2.5-0.5b-merged",
         alias="INTENT_EXTRACTOR_MERGED_MODEL_DIR",
     )
+
     intent_extractor_device: str = Field(
         default="cuda",
         alias="INTENT_EXTRACTOR_DEVICE",
     )
+
     intent_extractor_max_new_tokens: int = Field(
         default=128,
         alias="INTENT_EXTRACTOR_MAX_NEW_TOKENS",
     )
-    intent_extractor_timeout_seconds: int = Field(
-        default=2,
+
+    intent_extractor_timeout_seconds: float = Field(
+        default=2.0,
         alias="INTENT_EXTRACTOR_TIMEOUT_SECONDS",
+    )
+
+    intent_extractor_latency_warn_ms: float = Field(
+        default=1000.0,
+        alias="INTENT_EXTRACTOR_LATENCY_WARN_MS",
     )
 
 
