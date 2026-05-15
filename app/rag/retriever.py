@@ -186,6 +186,93 @@ class GraphRetriever:
             },
         )
 
+    async def retrieve_hybrid_with_graph_expansion(
+        self,
+        rag_query: RAGQuery,
+        keyword_weight: float = 0.65,
+        vector_weight: float = 0.35,
+        expansion_weight: float = 0.75,
+    ) -> RAGResult:
+
+        hybrid_result = await self.retrieve_hybrid(
+            rag_query=rag_query,
+            keyword_weight=keyword_weight,
+            vector_weight=vector_weight,
+        )
+
+        expanded_sources = self._expand_graph_sources(
+            sources=hybrid_result.sources,
+            expansion_weight=expansion_weight,
+        )
+
+        final_sources = self._deduplicate_sources(
+            hybrid_result.sources + expanded_sources
+        )
+
+        final_sources = self._lightweight_rerank(
+            query=rag_query.query,
+            intent=rag_query.intent,
+            sources=final_sources,
+        )
+
+        top_k = rag_query.top_k or self.settings.rag_top_k
+        final_sources = final_sources[:top_k]
+
+        return RAGResult(
+            query=rag_query.query,
+            sources=final_sources,
+            context_text=self._build_context(final_sources),
+            metadata={
+                "retrieval_mode": "hybrid_graph_expansion",
+                "hybrid_count": len(hybrid_result.sources),
+                "expanded_count": len(expanded_sources),
+                "final_count": len(final_sources),
+                "keyword_weight": keyword_weight,
+                "vector_weight": vector_weight,
+                "expansion_weight": expansion_weight,
+            },
+        )
+
+    async def retrieve_auto(
+        self,
+        rag_query: RAGQuery,
+    ) -> RAGResult:
+
+        mode = getattr(self.settings, "rag_retrieval_mode", "keyword")
+
+        if mode == "keyword":
+            return await self.retrieve(rag_query)
+
+        if mode == "vector":
+            return await self.retrieve_by_vector(rag_query)
+
+        if mode == "hybrid":
+            if rag_query.intent == Intent.FAQ:
+                return await self.retrieve_hybrid(
+                    rag_query,
+                    keyword_weight=0.45,
+                    vector_weight=0.55,
+                )
+
+            return await self.retrieve_hybrid(rag_query)
+
+        if mode == "hybrid_graph":
+            if rag_query.intent == Intent.FAQ:
+                return await self.retrieve_hybrid_with_graph_expansion(
+                    rag_query,
+                    keyword_weight=0.45,
+                    vector_weight=0.55,
+                )
+
+            return await self.retrieve_hybrid_with_graph_expansion(rag_query)
+
+        logger.warning(
+            "Unknown RAG_RETRIEVAL_MODE=%s. Falling back to keyword retrieval.",
+            mode,
+        )
+
+        return await self.retrieve(rag_query)
+
     def _retrieve_menu(self, terms: list[str]) -> list[RetrievedSource]:
         sources = []
 
@@ -566,5 +653,329 @@ class GraphRetriever:
         sources.sort(key=lambda x: x.score, reverse=True)
 
         return sources
+
+    def _expand_graph_sources(
+        self,
+        sources: list[RetrievedSource],
+        expansion_weight: float = 0.75,
+    ) -> list[RetrievedSource]:
+
+        expanded: list[RetrievedSource] = []
+
+        for source in sources:
+
+            if source.source_type == SourceType.DOCUMENT:
+                expanded.extend(
+                    self._expand_chunk_neighbors(
+                        source=source,
+                        expansion_weight=expansion_weight,
+                    )
+                )
+
+                expanded.extend(
+                    self._expand_chunk_entities(
+                        source=source,
+                        expansion_weight=expansion_weight,
+                    )
+                )
+
+            elif source.source_type == SourceType.FAQ:
+                expanded.extend(
+                    self._expand_faq_entities(
+                        source=source,
+                        expansion_weight=expansion_weight,
+                    )
+                )
+
+            elif source.source_type == SourceType.MENU:
+                expanded.extend(
+                    self._expand_menu_category(
+                        source=source,
+                        expansion_weight=expansion_weight,
+                    )
+                )
+
+        return expanded
+    
+    def _expand_chunk_neighbors(
+        self,
+        source: RetrievedSource,
+        expansion_weight: float,
+    ) -> list[RetrievedSource]:
+
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (c:Chunk {id: $source_id})
+            OPTIONAL MATCH (prev:Chunk)-[:NEXT]->(c)
+            OPTIONAL MATCH (c)-[:NEXT]->(next:Chunk)
+            WITH collect(prev) + collect(next) AS neighbors
+            UNWIND neighbors AS n
+            WITH n
+            WHERE n IS NOT NULL
+            RETURN
+                n.id AS id,
+                n.text AS text
+            LIMIT 4
+            """,
+            {"source_id": source.source_id},
+        )
+
+        expanded = []
+
+        for row in rows:
+            expanded.append(
+                RetrievedSource(
+                    source_id=row["id"],
+                    source_type=SourceType.DOCUMENT,
+                    text=row.get("text") or "",
+                    score=source.score * expansion_weight,
+                    metadata={
+                        "retrieval_mode": "graph_expansion",
+                        "expanded_from": source.source_id,
+                        "relation": "NEXT_PREV",
+                    },
+                )
+            )
+
+        return expanded
+    
+    def _expand_chunk_entities(
+        self,
+        source: RetrievedSource,
+        expansion_weight: float,
+    ) -> list[RetrievedSource]:
+
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (c:Chunk {id: $source_id})-[:MENTIONS]->(e:Entity)
+            RETURN
+                e.key AS id,
+                e.name AS name,
+                e.type AS type
+            LIMIT 10
+            """,
+            {"source_id": source.source_id},
+        )
+
+        expanded = []
+
+        for row in rows:
+            text = f"Entity: {row.get('name') or ''} | Type: {row.get('type') or ''}"
+
+            entity_id = row.get('id')
+            if not entity_id:
+                continue
+
+            expanded.append(
+                RetrievedSource(
+                    source_id=entity_id,
+                    source_type=SourceType.DOCUMENT,
+                    text=text,
+                    score=source.score * expansion_weight * 0.85,
+                    metadata={
+                        "retrieval_mode": "graph_expansion",
+                        "expanded_from": source.source_id,
+                        "relation": "MENTIONS",
+                        "entity_type": row.get("type"),
+                    },
+                )
+            )
+
+        return expanded
+
+    def _expand_faq_entities(
+        self,
+        source: RetrievedSource,
+        expansion_weight: float,
+    ) -> list[RetrievedSource]:
+
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (f:FAQ {id: $source_id})-[:MENTIONS]->(e:Entity)
+            RETURN
+                e.key AS id,
+                e.name AS name,
+                e.type AS type
+            LIMIT 10
+            """,
+            {"source_id": source.source_id},
+        )
+
+        expanded = []
+
+        for row in rows:
+            text = f"Entity: {row.get('name') or ''} | Type: {row.get('type') or ''}"
+
+            entity_id = row.get('id')
+            if not entity_id:
+                continue
+
+            expanded.append(
+                RetrievedSource(
+                    source_id=entity_id,
+                    source_type=SourceType.FAQ,
+                    text=text,
+                    score=source.score * expansion_weight * 0.85,
+                    metadata={
+                        "retrieval_mode": "graph_expansion",
+                        "expanded_from": source.source_id,
+                        "relation": "MENTIONS",
+                        "entity_type": row.get("type"),
+                    },
+                )
+            )
+
+        return expanded
+    
+    def _expand_menu_category(
+        self,
+        source: RetrievedSource,
+        expansion_weight: float,
+    ) -> list[RetrievedSource]:
+
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (m:MenuItem {id: $source_id})-[:BELONGS_TO]->(cat:Category)<-[:BELONGS_TO]-(other:MenuItem)
+            WHERE other.id <> m.id
+            RETURN
+                other.id AS id,
+                other.name_vi AS name,
+                other.name_en AS name_en,
+                other.description AS description,
+                other.price AS price,
+                other.category AS category,
+                other.size AS size
+            LIMIT 5
+            """,
+            {"source_id": source.source_id},
+        )
+
+        expanded = []
+
+        for row in rows:
+            text = (
+                f"{row.get('name') or ''} | "
+                f"{row.get('category') or ''} | "
+                f"{row.get('price') or ''} VND | "
+                f"Size {row.get('size') or ''} | "
+                f"{row.get('description') or ''}"
+            )
+
+            expanded.append(
+                RetrievedSource(
+                    source_id=row["id"],
+                    source_type=SourceType.MENU,
+                    text=text,
+                    score=source.score * expansion_weight * 0.65,
+                    metadata={
+                        "retrieval_mode": "graph_expansion",
+                        "expanded_from": source.source_id,
+                        "relation": "BELONGS_TO_CATEGORY",
+                        "category": row.get("category"),
+                        "price": row.get("price"),
+                        "size": row.get("size"),
+                    },
+                )
+            )
+
+        return expanded
+
+    def _lightweight_rerank(
+        self,
+        query: str,
+        intent: Intent,
+        sources: list[RetrievedSource],
+    ) -> list[RetrievedSource]:
+
+        q = query.lower()
+
+        for source in sources:
+            text = source.text.lower()
+            metadata = source.metadata or {}
+
+            lexical_overlap = self._lexical_overlap_score(q, text)
+
+            source.score += lexical_overlap * 0.15
+
+            retrieval_mode = metadata.get("retrieval_mode", "")
+
+            if retrieval_mode == "graph_expansion":
+                source.score *= 0.85
+
+            if intent == Intent.ORDER and source.source_type == SourceType.MENU:
+                source.score *= 1.10
+
+            if intent == Intent.FAQ and source.source_type == SourceType.FAQ:
+                source.score *= 1.10
+
+            if intent == Intent.CONSULTANT and source.source_type in [
+                SourceType.MENU,
+                SourceType.DOCUMENT,
+            ]:
+                source.score *= 1.05
+
+        sources.sort(key=lambda x: x.score, reverse=True)
+
+        return sources
+
+    def _lexical_overlap_score(
+        self,
+        query: str,
+        text: str,
+    ) -> float:
+
+        query_tokens = self._simple_tokenize(query)
+        text_tokens = self._simple_tokenize(text)
+
+        if not query_tokens or not text_tokens:
+            return 0.0
+
+        overlap = query_tokens.intersection(text_tokens)
+
+        return len(overlap) / max(len(query_tokens), 1)
+
+    def _simple_tokenize(self, text: str) -> set[str]:
+        stopwords = {
+            "là",
+            "gì",
+            "của",
+            "quán",
+            "cho",
+            "anh",
+            "chị",
+            "em",
+            "tôi",
+            "một",
+            "ly",
+            "có",
+            "không",
+            "the",
+            "a",
+            "an",
+            "is",
+            "are",
+            "what",
+        }
+
+        cleaned = (
+            text.lower()
+            .replace("?", " ")
+            .replace(".", " ")
+            .replace(",", " ")
+            .replace(":", " ")
+            .replace(";", " ")
+            .replace("|", " ")
+            .replace("-", " ")
+            .replace("_", " ")
+        )
+
+        tokens = {
+            token.strip()
+            for token in cleaned.split()
+            if token.strip() and token.strip() not in stopwords
+        }
+
+        return tokens
+    
 
 graph_retriever = GraphRetriever()

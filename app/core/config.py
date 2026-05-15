@@ -81,11 +81,29 @@ class Settings(BaseSettings):
     rag_top_k: int = Field(default=5, alias="RAG_TOP_K")
     rag_expansion_window: int = Field(default=1, alias="RAG_EXPANSION_WINDOW")
     rag_relevance_threshold: float = Field(default=0.70, alias="RAG_RELEVANCE_THRESHOLD")
-
+    rag_retrieval_mode: Literal['keyword', 'vector', 'hybrid', 'hybrid_graph'] = Field(default='hybrid_graph', alias="RAG_RETRIEVAL_MODE")
+    
     # Embedding
-    embedding_backend: str = Field(default="mock", alias="EMBEDDING_BACKEND")
-    embedding_model: str = Field(default="mock-hash-embedding", alias="EMBEDDING_MODEL")
-    embedding_dim: int = Field(default=384, alias="EMBEDDING_DIM")
+    embedding_backend: Literal["mock", "sentence_transformers"] = Field(
+        default="mock",
+        alias="EMBEDDING_BACKEND",
+    )
+    embedding_model: str = Field(
+        default="BAAI/bge-m3",
+        alias="EMBEDDING_MODEL",
+    )
+    embedding_dim: int = Field(
+        default=1024,
+        alias="EMBEDDING_DIM",
+    )
+    embedding_device: str = Field(
+        default="cuda",
+        alias="EMBEDDING_DEVICE",
+    )
+    embedding_batch_size: int = Field(
+        default=16,
+        alias="EMBEDDING_BATCH_SIZE",
+    )
 
     # Streaming
     stream_token_delay_seconds: float = Field(default=0.01, alias="STREAM_TOKEN_DELAY_SECONDS")

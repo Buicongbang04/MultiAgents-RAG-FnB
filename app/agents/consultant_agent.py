@@ -12,7 +12,7 @@ class ConsultantAgent(BaseAgent):
     name = AgentName.CONSULTANT
 
     async def run(self, agent_input: AgentInput) -> AgentOutput:
-        rag_result = await graph_retriever.retrieve(
+        rag_result = await graph_retriever.retrieve_auto(
             rag_query=agent_input.metadata["rag_query"]
         )
 

@@ -11,6 +11,75 @@ MENU_PATH = DATA_DIR / "menu.csv"
 FAQ_PATH = DATA_DIR / "faq.csv"
 DOC_PATH = DATA_DIR / "docs.jsonl"
 
+DOMAIN_ENTITIES = [
+    {
+        "key": "topic::wifi",
+        "name": "wifi",
+        "type": "faq_topic",
+        "keywords": ["wifi", "wi-fi", "internet", "mạng", "mật khẩu", "password"],
+    },
+    {
+        "key": "topic::opening_hours",
+        "name": "opening_hours",
+        "type": "faq_topic",
+        "keywords": ["giờ", "mở cửa", "đóng cửa", "open", "close", "opening_hours"],
+    },
+    {
+        "key": "topic::delivery",
+        "name": "delivery",
+        "type": "faq_topic",
+        "keywords": ["delivery", "giao hàng", "ship", "mang đi", "take away"],
+    },
+    {
+        "key": "topic::size",
+        "name": "size",
+        "type": "faq_topic",
+        "keywords": ["size", "kích cỡ", "cỡ ly"],
+    },
+    {
+        "key": "topic::payment",
+        "name": "payment",
+        "type": "faq_topic",
+        "keywords": ["thanh toán", "payment", "tiền mặt", "chuyển khoản", "momo", "visa"],
+    },
+    {
+        "key": "preference::low_sugar",
+        "name": "ít ngọt",
+        "type": "preference",
+        "keywords": ["ít ngọt", "không ngọt", "giảm đường", "less sugar", "low sugar"],
+    },
+    {
+        "key": "preference::budget",
+        "name": "giá rẻ",
+        "type": "preference",
+        "keywords": ["giá rẻ", "rẻ", "tiết kiệm", "budget", "cheap"],
+    },
+    {
+        "key": "category::coffee",
+        "name": "coffee",
+        "type": "category",
+        "keywords": ["coffee", "cà phê", "cafe", "bạc xỉu", "latte", "cappuccino", "espresso"],
+    },
+    {
+        "key": "category::tea",
+        "name": "tea",
+        "type": "category",
+        "keywords": ["tea", "trà", "trà sen", "trà đào", "trà xanh"],
+    },
+    {
+        "key": "category::freeze",
+        "name": "freeze",
+        "type": "category",
+        "keywords": ["freeze", "đá xay", "chocolate freeze", "caramel freeze"],
+    },
+    {
+        "key": "category::food",
+        "name": "food",
+        "type": "category",
+        "keywords": ["food", "bánh", "bánh mì", "bánh ngọt", "đồ ăn"],
+    },
+]
+
 
 def create_constraints() -> None:
     queries = [
@@ -215,6 +284,149 @@ def ingest_docs() -> None:
 
     print(f"Chunks: {count}")
 
+def _contains_any(text: str, keywords: list[str]) -> bool:
+    text = (text or "").lower()
+    return any(keyword.lower() in text for keyword in keywords)
+
+
+def ingest_domain_entities() -> None:
+    for entity in DOMAIN_ENTITIES:
+        neo4j_client.execute_query(
+            """
+            MERGE (e:Entity {key: $key})
+            SET
+                e.name = $name,
+                e.type = $type,
+                e.keywords = $keywords
+            """,
+            entity,
+        )
+
+    print(f"Domain entities: {len(DOMAIN_ENTITIES)}")
+
+
+def link_faq_domain_mentions() -> None:
+    rows = neo4j_client.execute_query(
+        """
+        MATCH (f:FAQ)
+        RETURN
+            f.id AS id,
+            f.topic AS topic,
+            f.question AS question,
+            f.answer AS answer
+        """
+    )
+
+    linked = 0
+
+    for row in rows:
+        text = " ".join(
+            [
+                str(row.get("topic") or ""),
+                str(row.get("question") or ""),
+                str(row.get("answer") or ""),
+            ]
+        ).lower()
+
+        for entity in DOMAIN_ENTITIES:
+            if _contains_any(text, entity["keywords"]):
+                neo4j_client.execute_query(
+                    """
+                    MATCH (f:FAQ {id: $faq_id})
+                    MATCH (e:Entity {key: $entity_key})
+                    MERGE (f)-[:MENTIONS]->(e)
+                    """,
+                    {
+                        "faq_id": row["id"],
+                        "entity_key": entity["key"],
+                    },
+                )
+                linked += 1
+
+    print(f"FAQ -> MENTIONS -> Entity: {linked}")
+
+
+def link_chunk_domain_mentions() -> None:
+    rows = neo4j_client.execute_query(
+        """
+        MATCH (c:Chunk)
+        RETURN
+            c.id AS id,
+            c.text AS text
+        """
+    )
+
+    linked = 0
+
+    for row in rows:
+        text = str(row.get("text") or "").lower()
+
+        for entity in DOMAIN_ENTITIES:
+            if _contains_any(text, entity["keywords"]):
+                neo4j_client.execute_query(
+                    """
+                    MATCH (c:Chunk {id: $chunk_id})
+                    MATCH (e:Entity {key: $entity_key})
+                    MERGE (c)-[:MENTIONS]->(e)
+                    """,
+                    {
+                        "chunk_id": row["id"],
+                        "entity_key": entity["key"],
+                    },
+                )
+                linked += 1
+
+    print(f"Chunk -> MENTIONS -> Entity: {linked}")
+
+
+def link_menu_domain_mentions() -> None:
+    rows = neo4j_client.execute_query(
+        """
+        MATCH (m:MenuItem)
+        RETURN
+            m.id AS id,
+            m.name_vi AS name_vi,
+            m.name_en AS name_en,
+            m.description AS description,
+            m.category AS category
+        """
+    )
+
+    linked = 0
+
+    for row in rows:
+        text = " ".join(
+            [
+                str(row.get("name_vi") or ""),
+                str(row.get("name_en") or ""),
+                str(row.get("description") or ""),
+                str(row.get("category") or ""),
+            ]
+        ).lower()
+
+        for entity in DOMAIN_ENTITIES:
+            if _contains_any(text, entity["keywords"]):
+                neo4j_client.execute_query(
+                    """
+                    MATCH (m:MenuItem {id: $menu_id})
+                    MATCH (e:Entity {key: $entity_key})
+                    MERGE (m)-[:MENTIONS]->(e)
+                    """,
+                    {
+                        "menu_id": row["id"],
+                        "entity_key": entity["key"],
+                    },
+                )
+                linked += 1
+
+    print(f"MenuItem -> MENTIONS -> Entity: {linked}")
+
+
+def build_domain_mentions() -> None:
+    ingest_domain_entities()
+    link_faq_domain_mentions()
+    link_chunk_domain_mentions()
+    link_menu_domain_mentions()
 
 def graph_stats() -> None:
     queries = {
@@ -233,6 +445,33 @@ def graph_stats() -> None:
         print(f"{name}: {result[0]['count']}")
 
 
+def build_chunk_next_relationships() -> None:
+    rows = neo4j_client.execute_query(
+        """
+        MATCH (c:Chunk)
+        RETURN c.id AS id
+        ORDER BY c.id
+        """
+    )
+
+    for i in range(len(rows) - 1):
+        current_id = rows[i]["id"]
+        next_id = rows[i + 1]["id"]
+
+        neo4j_client.execute_query(
+            """
+            MATCH (c1:Chunk {id: $current_id})
+            MATCH (c2:Chunk {id: $next_id})
+            MERGE (c1)-[:NEXT]->(c2)
+            """,
+            {
+                "current_id": current_id,
+                "next_id": next_id,
+            },
+        )
+
+    print("Chunk NEXT relationships built.")
+
 def main() -> None:
     assert neo4j_client.verify_connection(), "Neo4j connection failed"
 
@@ -242,6 +481,8 @@ def main() -> None:
     ingest_menu()
     ingest_faq()
     ingest_docs()
+    build_chunk_next_relationships()
+    build_domain_mentions()
 
     graph_stats()
 
