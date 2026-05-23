@@ -8,6 +8,7 @@ from app.core.logging import get_logger
 from app.core.schemas import RAGQuery, RAGResult, RetrievedSource
 from app.rag.neo4j_client import neo4j_client
 from app.rag.embedding_client import get_embedding_client
+from app.rag.reranker import get_reranker
 
 logger = get_logger(__name__)
 
@@ -209,6 +210,7 @@ class GraphRetriever:
             hybrid_result.sources + expanded_sources
         )
 
+        # Lightweight lexical rerank
         final_sources = self._lightweight_rerank(
             query=rag_query.query,
             intent=rag_query.intent,
@@ -216,7 +218,15 @@ class GraphRetriever:
         )
 
         top_k = rag_query.top_k or self.settings.rag_top_k
-        final_sources = final_sources[:top_k]
+
+        # BGE reranker (nếu được bật)
+        reranker = get_reranker()
+        final_sources = reranker.rerank(
+            query=rag_query.query,
+            sources=final_sources,
+            top_k=top_k,
+            threshold=self.settings.reranker_threshold,
+        )
 
         return RAGResult(
             query=rag_query.query,
@@ -230,6 +240,7 @@ class GraphRetriever:
                 "keyword_weight": keyword_weight,
                 "vector_weight": vector_weight,
                 "expansion_weight": expansion_weight,
+                "reranker": type(reranker).__name__,
             },
         )
 
@@ -449,6 +460,50 @@ class GraphRetriever:
         return dot / (norm_a * norm_b)
     
     def _retrieve_menu_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        # Thử dùng Neo4j vector index trước (nhanh hơn ~10x so với fetch 500 rows)
+        try:
+            rows = neo4j_client.execute_query(
+                """
+                CALL db.index.vector.queryNodes('menu_embedding', $top_k, $embedding)
+                YIELD node AS m, score
+                RETURN
+                    m.id AS id,
+                    m.name_vi AS name,
+                    m.name_en AS name_en,
+                    m.description AS description,
+                    m.price AS price,
+                    m.category AS category,
+                    m.size AS size,
+                    score
+                """,
+                {"embedding": query_embedding, "top_k": 20},
+            )
+            if rows:
+                return [
+                    RetrievedSource(
+                        source_id=r["id"],
+                        source_type=SourceType.MENU,
+                        text=(
+                            f"{r.get('name') or ''} | "
+                            f"{r.get('category') or ''} | "
+                            f"{r.get('price') or ''} VND | "
+                            f"Size {r.get('size') or ''} | "
+                            f"{r.get('description') or ''}"
+                        ),
+                        score=float(r.get("score", 0.0)),
+                        metadata={
+                            "retrieval_mode": "vector_index",
+                            "price": r.get("price"),
+                            "category": r.get("category"),
+                            "size": r.get("size"),
+                        },
+                    )
+                    for r in rows
+                ]
+        except Exception:
+            pass  # vector index chưa tạo → fallback cosine
+
+        # Fallback: fetch rows + Python cosine
         rows = neo4j_client.execute_query(
             """
             MATCH (m:MenuItem)
@@ -465,26 +520,22 @@ class GraphRetriever:
             LIMIT 500
             """
         )
-
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
             if score < 0.05:
                 continue
-
-            text = (
-                f"{row.get('name') or ''} | "
-                f"{row.get('category') or ''} | "
-                f"{row.get('price') or ''} VND | "
-                f"Size {row.get('size') or ''} | "
-                f"{row.get('description') or ''}"
-            )
-
             sources.append(
                 RetrievedSource(
                     source_id=row["id"],
                     source_type=SourceType.MENU,
-                    text=text,
+                    text=(
+                        f"{row.get('name') or ''} | "
+                        f"{row.get('category') or ''} | "
+                        f"{row.get('price') or ''} VND | "
+                        f"Size {row.get('size') or ''} | "
+                        f"{row.get('description') or ''}"
+                    ),
                     score=score,
                     metadata={
                         "retrieval_mode": "vector",
@@ -494,76 +545,106 @@ class GraphRetriever:
                     },
                 )
             )
-
         return sources
     
     def _retrieve_faq_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        try:
+            rows = neo4j_client.execute_query(
+                """
+                CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $embedding)
+                YIELD node AS f, score
+                WHERE f:FAQ
+                RETURN f.id AS id, f.topic AS topic, f.question AS question,
+                       f.answer AS answer, score
+                """,
+                {"embedding": query_embedding, "top_k": 20},
+            )
+            if rows:
+                return [
+                    RetrievedSource(
+                        source_id=r["id"],
+                        source_type=SourceType.FAQ,
+                        text=f"Q: {r.get('question') or ''}\nA: {r.get('answer') or ''}",
+                        score=float(r.get("score", 0.0)),
+                        metadata={"retrieval_mode": "vector_index", "topic": r.get("topic")},
+                    )
+                    for r in rows
+                ]
+        except Exception:
+            pass
+
         rows = neo4j_client.execute_query(
             """
             MATCH (f:FAQ)
             WHERE f.embedding IS NOT NULL
-            RETURN
-                f.id AS id,
-                f.topic AS topic,
-                f.question AS question,
-                f.answer AS answer,
-                f.embedding AS embedding
+            RETURN f.id AS id, f.topic AS topic, f.question AS question,
+                   f.answer AS answer, f.embedding AS embedding
             LIMIT 500
             """
         )
-
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
             if score < 0.05:
                 continue
-
             sources.append(
                 RetrievedSource(
                     source_id=row["id"],
                     source_type=SourceType.FAQ,
                     text=f"Q: {row.get('question') or ''}\nA: {row.get('answer') or ''}",
                     score=score,
-                    metadata={
-                        "retrieval_mode": "vector",
-                        "topic": row.get("topic"),
-                    },
+                    metadata={"retrieval_mode": "vector", "topic": row.get("topic")},
                 )
             )
-
         return sources
-    
+
     def _retrieve_chunks_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
+        try:
+            rows = neo4j_client.execute_query(
+                """
+                CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $embedding)
+                YIELD node AS c, score
+                WHERE c:Chunk
+                RETURN c.id AS id, c.text AS text, score
+                """,
+                {"embedding": query_embedding, "top_k": 20},
+            )
+            if rows:
+                return [
+                    RetrievedSource(
+                        source_id=r["id"],
+                        source_type=SourceType.DOCUMENT,
+                        text=r.get("text") or "",
+                        score=float(r.get("score", 0.0)),
+                        metadata={"retrieval_mode": "vector_index"},
+                    )
+                    for r in rows
+                ]
+        except Exception:
+            pass
+
         rows = neo4j_client.execute_query(
             """
             MATCH (c:Chunk)
             WHERE c.embedding IS NOT NULL
-            RETURN
-                c.id AS id,
-                c.text AS text,
-                c.embedding AS embedding
+            RETURN c.id AS id, c.text AS text, c.embedding AS embedding
             LIMIT 500
             """
         )
-
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
             if score < 0.05:
                 continue
-
             sources.append(
                 RetrievedSource(
                     source_id=row["id"],
                     source_type=SourceType.DOCUMENT,
                     text=row.get("text") or "",
                     score=score,
-                    metadata={
-                        "retrieval_mode": "vector",
-                    },
+                    metadata={"retrieval_mode": "vector"},
                 )
             )
-
         return sources
 
     def _late_fusion(

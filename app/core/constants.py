@@ -43,6 +43,7 @@ class StreamEventType(str, Enum):
     CLAUSE = "clause"
     DONE = "done"
     ERROR = "error"
+    METADATA = "metadata"
 
 
 VALID_INTENTS = {intent.value for intent in Intent}

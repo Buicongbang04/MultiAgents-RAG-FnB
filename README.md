@@ -1,479 +1,292 @@
-# MultiAgents-RAG-FnB
+# MultiAgents RAG FnB
 
-Production-ready Multi-Agent RAG chatbot system for Food & Beverage consultation using:
+Robot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy hoàn toàn Local — không phụ thuộc Cloud API.
 
-- Multi-Agent Architecture
-- Hybrid Graph RAG
-- Neo4j Knowledge Graph
-- SGLang Serving
-- Qwen2.5 Models
-- Intelligent Semantic Cache
-- FastAPI API Service
+Hệ thống xử lý 4 luồng: **Đặt hàng**, **Tư vấn**, **FAQ**, **Ignore/Noise**.
 
 ---
 
-# 1. System Architecture
+## Kiến trúc tổng thể
 
-## Components
-
-- **Router Agent**
-  - Classifies user intent:
-    - `order`
-    - `consultant`
-    - `faq`
-    - `ignore`
-
-- **Consultant Agent**
-  - Recommends menu items using Hybrid Graph RAG.
-
-- **FAQ Agent**
-  - Handles frequently asked restaurant questions.
-
-- **Ignore Agent**
-  - Rejects out-of-domain questions politely.
-
-- **Neo4j Knowledge Graph**
-  - Stores:
-    - Menu
-    - FAQ
-    - Documents
-    - Relationships
-
-- **SGLang Server**
-  - Hosts Generator Model:
-    - `Qwen2.5-7B-Instruct-AWQ`
-
-- **Semantic Cache**
-  - Exact cache
-  - Embedding cache
-  - Intent-aware cache policy
-
----
-
-# 2. System Flow
-
-```text
-User
- ↓
-FastAPI (/chat)
- ↓
-Router Agent
- ↓
-Intent Extraction
- ↓
-Cache Lookup
- ↓ miss
-Specialized Agent
- ↓
-Hybrid Graph RAG
- ↓
-SGLang Generator
- ↓
-Response
+```
+User Query
+    │
+    ▼
+Router Agent (Qwen2.5-1.5B)
+    │
+    ├──[order]──────► Order Agent ──────┐
+    ├──[consultant]─► Consultant Agent ─┤
+    ├──[faq]────────► FAQ Agent ────────┤
+    └──[ignore]─────► Ignore Handler ───┘
+                                        │
+                              Graph RAG (Neo4j)
+                         Hybrid Search + Graph Expansion
+                                        │
+                              Generator (Qwen2.5-7B)
+                                        │
+                              Response + TTS (SSE)
 ```
 
----
+### Các thành phần chính
 
-# 3. Prerequisites
-
-## Hardware
-
-Recommended:
-
-| Component | Requirement |
-|------------|-------------|
-| GPU | RTX 3060 12GB or above |
-| RAM | 32GB+ |
-| OS | Ubuntu / Pop!_OS Linux |
-| Python | 3.11 |
-
-Minimum:
-
-- GPU 8GB VRAM
-- CPU inference possible but slower
+| Thành phần | Chi tiết |
+|---|---|
+| **Router** | Qwen2.5-1.5B fine-tuned, latency ≤ 200ms |
+| **Generator** | Qwen2.5-7B-Instruct-AWQ qua SGLang |
+| **Graph DB** | Neo4j 5 — Menu, FAQ, Chunk, Entity |
+| **Retrieval** | Hybrid (keyword + vector) + Graph Expansion + BGE Reranker |
+| **Cache** | Exact cache + Semantic cache (embedding similarity ≥ 0.95) |
+| **Session** | In-memory, TTL 30 phút, auto-summarization |
+| **Streaming** | True token streaming qua SSE |
 
 ---
 
-# 4. Clone Repository
+## Yêu cầu phần cứng
+
+| | Tối thiểu | Khuyến nghị |
+|---|---|---|
+| GPU | 8GB VRAM | RTX 3060 12GB |
+| RAM | 16GB | 32GB |
+| OS | Ubuntu 20.04+ | Ubuntu 22.04 |
+| Python | 3.11 | 3.11 |
+
+---
+
+## Cài đặt
+
+### 1. Clone repo
 
 ```bash
 git clone https://github.com/Buicongbang04/MultiAgents-RAG-FnB.git
 cd MultiAgents-RAG-FnB
 ```
 
----
-
-# 5. Create Python Environment
+### 2. Tạo conda environment
 
 ```bash
 conda create -n fiai python=3.11 -y
 conda activate fiai
 ```
 
-Verify:
+### 3. Cài dependencies
 
 ```bash
-python --version
-```
-
-Expected:
-
-```text
-Python 3.11.x
-```
-
----
-
-# 6. Install Dependencies
-
-```bash
+# Core API
 pip install -r requirements.txt
+
+# ML stack (HuggingFace, training)
+pip install -r requirements-ml.txt
+
+# Chainlit demo UI
+pip install -r requirements-ui.txt
+
+# SGLang serving (chỉ cài trên inference host có CUDA)
+pip install -r requirements-serving.txt
 ```
 
-If Flash Attention fails:
+### 4. Tạo file `.env`
 
-```bash
-pip install ninja packaging wheel
+Các biến quan trọng:
+
+```env
+# LLM Backend
+LLM_BACKEND=sglang
+LLM_BASE_URL=http://localhost:30000/v1
+GENERATOR_MODEL=Qwen/Qwen2.5-7B-Instruct-AWQ
+
+# Neo4j
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_password
+
+# Router
+ROUTER_BACKEND=hf_merged
+ROUTER_MERGED_MODEL_DIR=models/router-qwen2.5-0.5b-merged
+
+# RAG
+RAG_RETRIEVAL_MODE=hybrid_graph
+EMBEDDING_BACKEND=sentence_transformers
+EMBEDDING_MODEL=BAAI/bge-m3
+
+# Reranker (optional, cần GPU)
+RERANKER_BACKEND=bge
+RERANKER_MODEL=BAAI/bge-reranker-v2-m3
 ```
 
----
-
-# 7. Install Neo4j
-
-## Docker (Recommended)
+### 5. Khởi động Neo4j
 
 ```bash
 docker run \
   --name neo4j-fnb \
-  -p 7474:7474 \
-  -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/password \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/your_password \
   -d neo4j:5
 ```
 
-Open browser:
+### 6. Nạp dữ liệu vào Graph
 
-```text
-http://localhost:7474
+```bash
+conda activate fiai
+python -m scripts.ingest_mock_to_neo4j
+python -m scripts.embed_graph
 ```
 
-Login:
+Tạo Neo4j vector index (chạy 1 lần trong Neo4j Browser):
 
-```text
-username: neo4j
-password: password
-```
+```cypher
+CREATE VECTOR INDEX menu_embedding IF NOT EXISTS
+FOR (m:MenuItem) ON m.embedding
+OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 
----
-
-# 8. Configure Environment Variables
-
-Create `.env`
-
-```env
-# App
-HOST=0.0.0.0
-PORT=8001
-
-# LLM Backend
-LLM_BACKEND=sglang
-GENERATOR_MODEL=Qwen/Qwen2.5-7B-Instruct-AWQ
-LLM_BASE_URL=http://localhost:30000/v1
-LLM_API_KEY=EMPTY
-
-# Neo4j
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=password
-
-# Retrieval
-RAG_RETRIEVAL_MODE=hybrid_graph
-
-# Embedding
-EMBEDDING_MODEL=BAAI/bge-m3
-EMBEDDING_DEVICE=cpu
-
-# Router
-ROUTER_BACKEND=hf_merged
-ROUTER_MODEL_PATH=models/router-qwen2.5-0.5b-merged
-
-# Intelligent Cache
-INTENT_EXTRACTOR_BACKEND=rule_based
-
-# Cache
-EXACT_CACHE_TTL_SECONDS=1800
-SEMANTIC_CACHE_TTL_SECONDS=1800
+CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
+FOR (c:Chunk) ON c.embedding
+OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 ```
 
 ---
 
-# 9. Download Models
+## Chạy hệ thống
 
-## Generator
-
-SGLang auto-downloads:
-
-```text
-Qwen/Qwen2.5-7B-Instruct-AWQ
-```
-
-## Router
-
-Place merged model:
-
-```text
-models/
-└── router-qwen2.5-0.5b-merged
-```
-
----
-
-# 10. Start SGLang Server
-### Terminal 1
-Run:
+### Terminal 1 — SGLang Server
 
 ```bash
 bash scripts/SGLang_Server.sh
 ```
 
-Expected log:
-
-```text
-Server started successfully
-Listening on port 30000
-```
-
-Health check:
+Kiểm tra:
 
 ```bash
 curl http://localhost:30000/v1/models
 ```
 
----
+### Terminal 2 — Backend (+ tuỳ chọn UI)
 
-# 11. Build Neo4j Knowledge Graph
-
-Run ingestion:
+Chạy backend đơn giản:
 
 ```bash
-python -m scripts.ingest_mock_to_neo4j
+conda activate fiai
+python run.py
 ```
 
-Expected:
-
-```text
-FAQ ingested
-Menu ingested
-Documents ingested
-Graph relationships created
-```
-
-Verify in Neo4j:
-
-```cypher
-MATCH (n)
-RETURN count(n)
-```
-
----
-
-# 12. Start Application
-### Terminal 2
-Run:
+Chạy backend **kèm Chainlit UI** cùng lúc:
 
 ```bash
-bash scripts/restart_system.sh
+python run.py --with-ui
+# Backend: http://localhost:8001
+# UI:      http://localhost:8501
 ```
 
-Expected:
+Các tuỳ chọn:
 
-```text
-Application startup complete.
-Uvicorn running on:
-http://0.0.0.0:8001
+```bash
+python run.py --port 8002          # đổi port
+python run.py --reload             # hot-reload (dev)
+python run.py --with-ui --ui-port 8080
 ```
 
----
-
-# 13. Verify System
-
-## Swagger UI
-
-Open:
-
-```text
-http://localhost:8001/docs
-```
-
----
-
-## Health Check
+Kiểm tra:
 
 ```bash
 curl http://localhost:8001/health
 ```
 
-Expected:
-
-```json
-{
-  "status": "ok"
-}
-```
-
 ---
 
-# 14. Test Chat API
+## API
 
-Example request:
+### POST `/chat`
 
 ```bash
-curl -X POST \
-"http://localhost:8001/chat" \
--H "Content-Type: application/json" \
--d '{
-  "message": "Wifi quán là gì?",
-  "session_id": "test-session"
-}'
+curl -X POST http://localhost:8001/chat \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Wifi quán là gì?", "session_id": "sess-001"}'
 ```
 
-Expected response:
+Response:
 
 ```json
 {
+  "session_id": "sess-001",
   "intent": "faq",
   "agent": "faq_agent",
-  "answer":
-  "Wifi của quán là Highlands_Guest,
-   mật khẩu là highlands123."
+  "answer": "Wifi của quán là Highlands_Guest, mật khẩu highlands123.",
+  "latency_ms": 320.5
 }
 ```
 
----
+### POST `/chat/stream`
 
-# 15. Example Queries
-
-## FAQ
-
-```text
-Wifi quán là gì?
-Mấy giờ đóng cửa?
-Có ship không?
-```
-
----
-
-## Consultant
-
-```text
-Có gì ngon rẻ không?
-Recommend món dễ uống
-Quán có bạc xỉu không?
-```
-
----
-
-## Order
-
-```text
-Cho anh một bạc xỉu đá
-Cho em một latte size M
-```
-
----
-
-## Ignore
-
-```text
-Hôm nay thời tiết thế nào?
-Ai là tổng thống Mỹ?
-```
-
----
-
-# 16. Run Benchmarks
-
-## End-to-End Benchmark
+SSE stream — trả về từng token:
 
 ```bash
+curl -X POST http://localhost:8001/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Có gì ngon rẻ không?"}' \
+  --no-buffer
+```
+
+Events:
+
+```
+data: {"type":"metadata","data":{"ttft_ms":85.3,"intent":"consultant","cache_hit":false}}
+data: {"type":"token","data":{"token":"Dạ "}}
+data: {"type":"clause","data":{"clause":"Dạ, em gợi ý vài món phù hợp."}}
+...
+data: [DONE]
+```
+
+---
+
+## Câu hỏi demo
+
+| Intent | Câu hỏi |
+|--------|---------|
+| FAQ | "Wifi quán là gì?" · "Mấy giờ đóng cửa?" · "Có ship không?" |
+| Order | "Cho anh 1 bạc xỉu đá size L" · "Cho em latte M" |
+| Consultant | "Có gì ngon rẻ không?" · "Gợi ý món ít ngọt" |
+| Ignore | "Hôm nay thời tiết thế nào?" · "Hello" |
+
+---
+
+## Benchmark
+
+```bash
+# Latency & throughput
 python scripts/benchmark_chat_api.py
-```
 
----
-
-## Intelligent Cache Benchmark
-
-```bash
+# Semantic cache
 python scripts/benchmark_intelligent_cache_500.py
-```
 
-Expected:
-
-```json
-{
-  "pass": {
-    "hit_rate": true,
-    "order_no_cache": true,
-    "cache_hit_latency_p95_under_250ms": true
-  }
-}
+# Router latency
+python scripts/benchmark_router_latency.py
 ```
 
 ---
 
-# 17. Troubleshooting
+## Cấu trúc thư mục
 
-## CUDA Out Of Memory
-
-Reduce concurrency:
-
-```bash
---max-running-requests=1
 ```
+app/
+├── agents/        # Router, Order, Consultant, FAQ, Ignore
+├── api/           # FastAPI routes
+├── cache/         # Exact cache + Semantic cache
+├── core/          # Config, schemas, constants
+├── llm/           # SGLang / Mock client
+├── middleware/    # Rate limiting
+├── prompts/       # System prompts cho từng agent
+├── queueing/      # Concurrency control (Semaphore + retry)
+├── rag/           # Neo4j retriever, embedding, reranker
+├── services/      # ChatService (orchestration)
+├── session/       # Session store + auto-summarization
+├── streaming/     # SSE helpers
+└── utils/         # TTS preprocess
 
-Lower VRAM fraction:
-
-```bash
---mem-fraction-static=0.65
-```
-
----
-
-## Neo4j Connection Failed
-
-Check container:
-
-```bash
-docker ps
-```
-
-Restart:
-
-```bash
-docker restart neo4j-fnb
+scripts/           # Data generation, training, benchmark
+tests/             # Unit & integration tests
 ```
 
 ---
 
-## SGLang Not Responding
+## Tác giả
 
-Check:
-
-```bash
-curl http://localhost:30000/v1/models
-```
-
-Restart:
-
-```bash
-bash scripts/SGLang_Server.sh
-```
-
----
-
-# 18. Author
-
-**Bùi Công Bằng**
-
-GitHub:
-https://github.com/Buicongbang04
+**Bùi Công Bằng** — [github.com/Buicongbang04](https://github.com/Buicongbang04)

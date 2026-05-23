@@ -1,21 +1,19 @@
-from app.agents.base import BaseAgent
-from app.core.constants import AgentName, Intent, Language
-from app.core.schemas import AgentInput, AgentOutput
-from app.llm import LLMGenerateRequest, get_llm_client
-from app.rag.retriever import graph_retriever
-
+from app.agents.base import AgentPrepared, BaseAgent
+from app.core.constants import AgentName, Intent
+from app.core.schemas import AgentInput
+from app.llm.base import LLMGenerateRequest
 from app.prompts import ORDER_SYSTEM_PROMPT
+from app.rag.retriever import graph_retriever
 from app.agents.context_builders import build_order_structured_context
 
 
 class OrderAgent(BaseAgent):
     name = AgentName.ORDER
 
-    async def run(self, agent_input: AgentInput) -> AgentOutput:
+    async def prepare(self, agent_input: AgentInput) -> AgentPrepared:
         rag_result = await graph_retriever.retrieve_auto(
             rag_query=agent_input.metadata["rag_query"]
         )
-
         structured_context = build_order_structured_context(
             user_text=agent_input.text,
             sources=rag_result.sources,
@@ -30,61 +28,29 @@ class OrderAgent(BaseAgent):
             top = rag_result.sources[0]
             price = top.metadata.get("price")
             size = top.metadata.get("size")
-            category = top.metadata.get("category")
-
-            fallback_answer = (
-                "Dạ, em tìm thấy món phù hợp trong menu:\n"
-                f"{top.text}\n"
-            )
-
+            fallback_answer = f"Dạ, em tìm thấy món phù hợp trong menu:\n{top.text}\n"
             if price:
-                fallback_answer += f"Giá hiện tại: {price:,}đ"
-
+                fallback_answer += f"Giá: {price:,}đ"
             if size:
                 fallback_answer += f" | Size: {size}"
 
-            if category:
-                fallback_answer += f" | Nhóm: {category}"
+        history = [{"role": m.role, "content": m.content} for m in agent_input.history]
 
-            fallback_answer += "\n"
-            fallback_answer += (
-                "MVP hiện tại chưa bật giỏ hàng, nên em chỉ xác nhận thông tin món trước ạ."
-            )
-
-        llm = get_llm_client()
-        llm_response = await llm.generate(
-            LLMGenerateRequest(
+        return AgentPrepared(
+            llm_request=LLMGenerateRequest(
                 system_prompt=ORDER_SYSTEM_PROMPT,
                 user_prompt=agent_input.text,
                 context=structured_context,
-                history=[
-                    {"role": msg.role, "content": msg.content}
-                    for msg in agent_input.history
-                ],
+                history=history,
                 metadata={
                     "agent": self.name.value,
                     "intent": Intent.ORDER.value,
                     "fallback_answer": fallback_answer,
                     "rag": rag_result.metadata,
                 },
-            )
-        )
-
-        return AgentOutput(
-            session_id=agent_input.session_id,
-            intent=Intent.ORDER,
-            agent=self.name,
-            answer=llm_response.text,
-            language=agent_input.language or Language.VI,
-            sources=rag_result.sources,
-            metadata={
-                "rag": rag_result.metadata,
-                "llm": {
-                    "backend": llm_response.backend,
-                    "model": llm_response.model,
-                    **llm_response.metadata,
-                },
-            },
+            ),
+            fallback_answer=fallback_answer,
+            rag_result=rag_result,
         )
 
 

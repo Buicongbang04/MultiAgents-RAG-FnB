@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# SGLang and its extras pull heavy GPU/CUDA dependencies.
+# Install this only on the inference host with a compatible CUDA toolchain.
+sglang[all]

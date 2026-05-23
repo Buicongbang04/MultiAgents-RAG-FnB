@@ -202,6 +202,12 @@ class Settings(BaseSettings):
         alias="INTENT_EXTRACTOR_LATENCY_WARN_MS",
     )
 
+    # Reranker
+    reranker_backend: str = Field(default="null", alias="RERANKER_BACKEND")
+    reranker_model: str = Field(default="BAAI/bge-reranker-v2-m3", alias="RERANKER_MODEL")
+    reranker_device: str = Field(default="cuda", alias="RERANKER_DEVICE")
+    reranker_threshold: float = Field(default=0.0, alias="RERANKER_THRESHOLD")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

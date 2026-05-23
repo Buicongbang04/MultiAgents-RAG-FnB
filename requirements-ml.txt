@@ -1,0 +1,12 @@
+-r requirements.txt
+
+# Python 3.11 strongly recommended for this stack.
+torch
+huggingface_hub==0.36.0
+transformers==4.57.6
+sentence-transformers
+datasets
+peft
+accelerate
+bitsandbytes>=0.44.0
+trl
