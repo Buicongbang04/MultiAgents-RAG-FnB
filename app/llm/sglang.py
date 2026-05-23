@@ -131,7 +131,10 @@ class SGLangClient(BaseLLMClient):
                     headers=self._headers(),
                 ) as response:
                     response.raise_for_status()
+                    done = False
                     async for line in response.aiter_lines():
+                        if done:
+                            continue
                         if not line:
                             continue
                         if line.startswith("data:"):
@@ -140,7 +143,8 @@ class SGLangClient(BaseLLMClient):
                             raw = line.strip()
 
                         if raw == "[DONE]":
-                            return
+                            done = True
+                            continue
 
                         try:
                             chunk = json.loads(raw)

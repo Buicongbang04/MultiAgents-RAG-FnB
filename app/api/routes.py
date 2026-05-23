@@ -1,9 +1,12 @@
 import time
+from typing import Optional
 
-from fastapi import APIRouter
+import httpx
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.cache.cache_service import cache_service
+from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.core.schemas import ChatRequest, ErrorResponse
 from app.queueing.request_queue import QueueExecutionError, QueueTimeoutError, queue_manager
@@ -27,9 +30,22 @@ def _error_response(status: int, error: str, message: str, detail: str = "") -> 
 
 @router.get("/health")
 async def health_check():
+    settings = get_settings()
+
+    # SGLang / vLLM health
+    llm_status = "skipped"
+    if settings.llm_backend in {"sglang", "vllm"}:
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{settings.llm_base_url}/models")
+            llm_status = "ok" if resp.status_code == 200 else f"http_{resp.status_code}"
+        except Exception as exc:
+            llm_status = f"error: {exc}"
+
     return {
         "status": "ok",
         "neo4j": neo4j_client.verify_connection(),
+        "llm": llm_status,
         "queues": queue_manager.stats(),
     }
 
@@ -76,3 +92,23 @@ async def cache_stats():
 @router.post("/debug/cache/clear")
 async def clear_cache():
     return cache_service.clear_all()
+
+
+@router.post("/cache/invalidate")
+async def invalidate_cache(
+    intent: Optional[str] = Query(
+        default=None,
+        description="Invalidate entries for a specific intent: faq | consultant | ignore. Omit to clear all.",
+    )
+):
+    """
+    Xóa cache khi menu hoặc FAQ thay đổi.
+    - intent=faq    → xóa toàn bộ entries FAQ
+    - intent=consultant → xóa entries Consultant
+    - (không truyền) → xóa toàn bộ cache
+    """
+    if intent:
+        result = cache_service.invalidate_by_intent(intent)
+    else:
+        result = cache_service.clear_all()
+    return result

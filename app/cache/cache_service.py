@@ -275,6 +275,33 @@ class CacheService:
 
         return {
             "cleared": True,
+            "scope": "all",
+            "exact": self.exact_cache.stats(),
+            "semantic": self.semantic_cache.stats(),
+        }
+
+    def invalidate_by_intent(self, intent_str: str) -> Dict[str, Any]:
+        """Xóa cache entries thuộc về một intent cụ thể."""
+        prefix = f"{intent_str}:"
+
+        exact_before = len(self.exact_cache._store)
+        keys_to_delete = [k for k in list(self.exact_cache._store.keys()) if k.startswith(prefix)]
+        for k in keys_to_delete:
+            del self.exact_cache._store[k]
+        exact_removed = exact_before - len(self.exact_cache._store)
+
+        semantic_before = len(self.semantic_cache._entries)
+        self.semantic_cache._entries = [
+            e for e in self.semantic_cache._entries
+            if e.intent.value != intent_str
+        ]
+        semantic_removed = semantic_before - len(self.semantic_cache._entries)
+
+        return {
+            "cleared": True,
+            "scope": intent_str,
+            "exact_removed": exact_removed,
+            "semantic_removed": semantic_removed,
             "exact": self.exact_cache.stats(),
             "semantic": self.semantic_cache.stats(),
         }
