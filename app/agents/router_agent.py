@@ -14,12 +14,12 @@ class RouterAgent:
     """
     Router Agent.
 
-    Supported backends:
-    - rule_based: MVP baseline
-    - hf_lora: Qwen2.5 router fine-tuned with LoRA
+    Priority:
+    1. llm   — gọi Qwen qua SGLang, hiểu ngôn ngữ tự nhiên (default khi LLM_BACKEND=sglang)
+    2. hf_lora / hf_merged — model fine-tuned local
+    3. rule_based — keyword fallback
 
-    Public output still satisfies:
-    {"action": "<intent>"}
+    Public output still satisfies: {"action": "<intent>"}
     """
 
     name = AgentName.ROUTER
@@ -35,14 +35,12 @@ class RouterAgent:
                     router = get_hf_lora_router()
 
                 output = await router.classify(router_input)
-
                 logger.info(
                     "Router classified session=%s backend=%s intent=%s",
                     router_input.session_id,
                     settings.router_backend,
                     output.action.value,
                 )
-
                 return output
 
             except Exception as exc:
@@ -51,11 +49,16 @@ class RouterAgent:
                     settings.router_backend,
                     exc,
                 )
-
                 fallback = self._classify_rule_based(router_input)
                 fallback.metadata["fallback_from"] = settings.router_backend
                 fallback.metadata["fallback_error"] = str(exc)
                 return fallback
+
+        # LLM-based routing (default khi SGLang đang chạy)
+        if settings.llm_backend in {"sglang", "vllm"}:
+            from app.agents.llm_router import get_llm_router
+            output = await get_llm_router().classify(router_input)
+            return output
 
         return self._classify_rule_based(router_input)
 

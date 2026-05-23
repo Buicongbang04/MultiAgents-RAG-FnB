@@ -1,43 +1,58 @@
 # MultiAgents RAG FnB
 
-Robot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy hoàn toàn Local — không phụ thuộc Cloud API.
+Chatbot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy hoàn toàn Local — không phụ thuộc Cloud API.
 
-Hệ thống xử lý 4 luồng: **Đặt hàng**, **Tư vấn**, **FAQ**, **Ignore/Noise**.
+Hệ thống xử lý 4 luồng: **Đặt hàng**, **Tư vấn menu**, **FAQ**, **Ignore/Noise**.
 
 ---
 
 ## Kiến trúc tổng thể
 
 ```
-User Query
-    │
-    ▼
-Router Agent (Qwen2.5-1.5B)
-    │
-    ├──[order]──────► Order Agent ──────┐
-    ├──[consultant]─► Consultant Agent ─┤
-    ├──[faq]────────► FAQ Agent ────────┤
-    └──[ignore]─────► Ignore Handler ───┘
-                                        │
-                              Graph RAG (Neo4j)
-                         Hybrid Search + Graph Expansion
-                                        │
-                              Generator (Qwen2.5-7B)
-                                        │
-                              Response + TTS (SSE)
+User Message
+      │
+      ▼
+ LLM Router (Qwen2.5-7B)        ← hiểu ngôn ngữ tự nhiên, không hardcode
+      │  fallback: rule_based
+      ├──[order]──────► Order Agent
+      ├──[consultant]─► Consultant Agent
+      ├──[faq]────────► FAQ Agent
+      └──[ignore]─────► Ignore Handler
+                              │
+                     Graph RAG (Neo4j)
+               Hybrid Search + Graph Expansion
+                              │
+                  Reranker (BGE-reranker-v2-m3)
+                              │
+                  Generator (Qwen2.5-7B-Instruct-AWQ)
+                              │
+                    Multi-layer Cache
+               Exact Cache + Semantic Cache (≥ 0.92)
+                              │
+                     Chainlit UI (animate)
 ```
 
 ### Các thành phần chính
 
 | Thành phần | Chi tiết |
 |---|---|
-| **Router** | Qwen2.5-1.5B fine-tuned, latency ≤ 200ms |
+| **Router** | LLM-based (Qwen2.5-7B via SGLang), fallback rule_based |
 | **Generator** | Qwen2.5-7B-Instruct-AWQ qua SGLang |
-| **Graph DB** | Neo4j 5 — Menu, FAQ, Chunk, Entity |
+| **Graph DB** | Neo4j 5 — MenuItem, FAQ, Chunk, Entity, Category |
 | **Retrieval** | Hybrid (keyword + vector) + Graph Expansion + BGE Reranker |
-| **Cache** | Exact cache + Semantic cache (embedding similarity ≥ 0.95) |
+| **Cache** | Exact cache + Semantic cache (cosine ≥ 0.92) |
 | **Session** | In-memory, TTL 30 phút, auto-summarization |
-| **Streaming** | True token streaming qua SSE |
+| **UI** | Chainlit — word-by-word animation, intent badge, latency |
+
+---
+
+## Dữ liệu (Highlands Coffee)
+
+| Loại | Số lượng | Nội dung |
+|---|---|---|
+| Menu | 55 món | 8 cà phê × 3 size, 5 trà × 3 size, 4 freeze × 3 size, 4 bánh |
+| FAQ | 30 cặp Q&A | 21 chủ đề (wifi, giờ, thanh toán, giao hàng...), Vi + En |
+| Policy | 20 chunks | Hoàn trả, tùy chỉnh, combo, chính sách quán |
 
 ---
 
@@ -71,22 +86,13 @@ conda activate fiai
 ### 3. Cài dependencies
 
 ```bash
-# Core API
-pip install -r requirements.txt
-
-# ML stack (HuggingFace, training)
-pip install -r requirements-ml.txt
-
-# Chainlit demo UI
-pip install -r requirements-ui.txt
-
-# SGLang serving (chỉ cài trên inference host có CUDA)
-pip install -r requirements-serving.txt
+pip install -r requirements.txt          # Core API
+pip install -r requirements-ml.txt       # HuggingFace, training
+pip install -r requirements-ui.txt       # Chainlit
+pip install -r requirements-serving.txt  # SGLang (cần CUDA)
 ```
 
 ### 4. Tạo file `.env`
-
-Các biến quan trọng:
 
 ```env
 # LLM Backend
@@ -99,18 +105,15 @@ NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_password
 
-# Router
-ROUTER_BACKEND=hf_merged
-ROUTER_MERGED_MODEL_DIR=models/router-qwen2.5-0.5b-merged
-
 # RAG
 RAG_RETRIEVAL_MODE=hybrid_graph
 EMBEDDING_BACKEND=sentence_transformers
 EMBEDDING_MODEL=BAAI/bge-m3
 
-# Reranker (optional, cần GPU)
+# Reranker
 RERANKER_BACKEND=bge
 RERANKER_MODEL=BAAI/bge-reranker-v2-m3
+RERANKER_THRESHOLD=0.7
 ```
 
 ### 5. Khởi động Neo4j
@@ -127,8 +130,8 @@ docker run \
 
 ```bash
 conda activate fiai
-python -m scripts.ingest_mock_to_neo4j
-python -m scripts.embed_graph
+python -m scripts.ingest_mock_to_neo4j   # Xóa graph cũ + nạp menu/FAQ/docs
+python -m scripts.embed_graph            # Tạo embeddings cho vector search
 ```
 
 Tạo Neo4j vector index (chạy 1 lần trong Neo4j Browser):
@@ -140,6 +143,10 @@ OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 
 
 CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
 FOR (c:Chunk) ON c.embedding
+OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
+
+CREATE VECTOR INDEX faq_embedding IF NOT EXISTS
+FOR (f:FAQ) ON f.embedding
 OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
 ```
 
@@ -159,32 +166,22 @@ Kiểm tra:
 curl http://localhost:30000/v1/models
 ```
 
-### Terminal 2 — Backend (+ tuỳ chọn UI)
-
-Chạy backend đơn giản:
+### Terminal 2 — Backend + UI
 
 ```bash
 conda activate fiai
-python run.py
+
+python run.py                          # Backend only (port 8001)
+python run.py --with-ui                # Backend + Chainlit UI (port 8501)
+python run.py --with-ui --ui-port 8080 # Đổi UI port
+python run.py --reload                 # Hot-reload (dev)
 ```
 
-Chạy backend **kèm Chainlit UI** cùng lúc:
+Sau khi start:
+- **API docs:** http://localhost:8001/docs
+- **Chat UI:** http://localhost:8501
 
-```bash
-python run.py --with-ui
-# Backend: http://localhost:8001
-# UI:      http://localhost:8501
-```
-
-Các tuỳ chọn:
-
-```bash
-python run.py --port 8002          # đổi port
-python run.py --reload             # hot-reload (dev)
-python run.py --with-ui --ui-port 8080
-```
-
-Kiểm tra:
+Kiểm tra hệ thống:
 
 ```bash
 curl http://localhost:8001/health
@@ -199,7 +196,7 @@ curl http://localhost:8001/health
 ```bash
 curl -X POST http://localhost:8001/chat \
   -H "Content-Type: application/json" \
-  -d '{"text": "Wifi quán là gì?", "session_id": "sess-001"}'
+  -d '{"text": "Cho mình 1 bạc xỉu size M", "session_id": "sess-001"}'
 ```
 
 Response:
@@ -207,10 +204,15 @@ Response:
 ```json
 {
   "session_id": "sess-001",
-  "intent": "faq",
-  "agent": "faq_agent",
-  "answer": "Wifi của quán là Highlands_Guest, mật khẩu highlands123.",
-  "latency_ms": 320.5
+  "intent": "order",
+  "agent": "order_agent",
+  "answer": "Dạ, em tìm được Bạc xỉu size M giá 45.000đ. Anh/chị xác nhận giúp em nhé?",
+  "latency_ms": 280.5,
+  "sources": [...],
+  "metadata": {
+    "router": {"router_type": "llm", ...},
+    "cache": {"hit": false, ...}
+  }
 }
 ```
 
@@ -225,40 +227,35 @@ curl -X POST http://localhost:8001/chat/stream \
   --no-buffer
 ```
 
-Events:
+### POST `/cache/invalidate`
 
-```
-data: {"type":"metadata","data":{"ttft_ms":85.3,"intent":"consultant","cache_hit":false}}
-data: {"type":"token","data":{"token":"Dạ "}}
-data: {"type":"clause","data":{"clause":"Dạ, em gợi ý vài món phù hợp."}}
-...
-data: [DONE]
+```bash
+# Xóa cache FAQ khi dữ liệu thay đổi
+curl -X POST "http://localhost:8001/cache/invalidate?intent=faq"
+
+# Xóa toàn bộ cache
+curl -X POST http://localhost:8001/cache/invalidate
 ```
 
 ---
 
 ## Câu hỏi demo
 
-| Intent | Câu hỏi |
-|--------|---------|
-| FAQ | "Wifi quán là gì?" · "Mấy giờ đóng cửa?" · "Có ship không?" |
-| Order | "Cho anh 1 bạc xỉu đá size L" · "Cho em latte M" |
-| Consultant | "Có gì ngon rẻ không?" · "Gợi ý món ít ngọt" |
-| Ignore | "Hôm nay thời tiết thế nào?" · "Hello" |
+| Intent | Ví dụ |
+|--------|-------|
+| **Đặt hàng** | "Cho anh 1 bạc xỉu đá size L" · "1 cà phê đen đá" · "cà phê sữa size M" |
+| **Tư vấn** | "Có gì ngon rẻ không?" · "Trời nóng uống gì?" · "Gợi ý món ít ngọt" |
+| **FAQ** | "Wifi quán là gì?" · "Mấy giờ đóng cửa?" · "Có ship không?" |
+| **Ignore** | "Hello" · "Hôm nay thời tiết thế nào?" |
 
 ---
 
 ## Benchmark
 
 ```bash
-# Latency & throughput
-python scripts/benchmark_chat_api.py
-
-# Semantic cache
-python scripts/benchmark_intelligent_cache_500.py
-
-# Router latency
-python scripts/benchmark_router_latency.py
+python scripts/benchmark_chat_api.py              # Latency & throughput
+python scripts/benchmark_intelligent_cache_500.py # Semantic cache hit rate
+python scripts/benchmark_router_latency.py        # Router latency
 ```
 
 ---
@@ -267,22 +264,27 @@ python scripts/benchmark_router_latency.py
 
 ```
 app/
-├── agents/        # Router, Order, Consultant, FAQ, Ignore
-├── api/           # FastAPI routes
+├── agents/        # LLMRouter, RuleRouter, Order, Consultant, FAQ, Ignore
+├── api/           # FastAPI routes (/chat, /cache/invalidate, /health)
 ├── cache/         # Exact cache + Semantic cache
 ├── core/          # Config, schemas, constants
-├── llm/           # SGLang / Mock client
+├── llm/           # SGLang client
 ├── middleware/    # Rate limiting
 ├── prompts/       # System prompts cho từng agent
 ├── queueing/      # Concurrency control (Semaphore + retry)
 ├── rag/           # Neo4j retriever, embedding, reranker
 ├── services/      # ChatService (orchestration)
 ├── session/       # Session store + auto-summarization
-├── streaming/     # SSE helpers
-└── utils/         # TTS preprocess
+└── streaming/     # SSE helpers
 
-scripts/           # Data generation, training, benchmark
-tests/             # Unit & integration tests
+data/mock/
+├── menu.csv       # 55 món Highlands Coffee (S/M/L, giá thật)
+├── faq.csv        # 30 Q&A (21 chủ đề, Vi + En)
+└── docs.jsonl     # 20 policy chunks
+
+scripts/           # Ingest, embed, benchmark, training
+chainlit_app.py    # Chainlit UI (word-by-word animation)
+run.py             # Entry point duy nhất
 ```
 
 ---

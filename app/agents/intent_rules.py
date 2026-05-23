@@ -42,8 +42,8 @@ def detect_language(text: str) -> Language:
 
 
 ORDER_KEYWORDS = [
-    "cho anh", "cho chị", "cho em", "cho tôi",
-    "lấy anh", "lấy chị", "lấy em", "lấy tôi",
+    "cho anh", "cho chị", "cho em", "cho tôi", "cho mình",
+    "lấy anh", "lấy chị", "lấy em", "lấy tôi", "lấy mình",
     "gọi", "đặt", "order", "thêm", "bớt", "bỏ",
     "tính tiền", "thanh toán", "mua",
     "một ly", "1 ly", "hai ly", "2 ly",
@@ -72,7 +72,7 @@ FAQ_KEYWORDS = [
 ]
 
 IGNORE_KEYWORDS = [
-    "ừm", "ờ", "à", "alo", "hello", "hi", "haha", "hehe", "test", "noise", "...",
+    "ừm", "ờ", "alo", "hello", "haha", "hehe", "test", "noise", "...",
 ]
 
 QUESTION_MARKERS = [
@@ -109,6 +109,12 @@ def classify_by_rules(text: str) -> IntentMatch:
     if has_menu_hint and re.search(quantity_pattern, normalized):
         order_score += 0.20
         order_matches.append("quantity+menu_item")
+
+    # Tên món đơn thuần (không có số lượng, không có FAQ/consultant signal) → order.
+    if has_menu_hint and not faq_matches and not consultant_matches:
+        order_score = max(order_score, 0.55)
+        if "menu_item_alone" not in order_matches:
+            order_matches.append("menu_item_alone")
 
     # Hỏi khẩu vị/gợi ý/món ngon → consultant.
     preference_words = ["ngon", "ít ngọt", "rẻ", "recommend", "suggest", "good"]
