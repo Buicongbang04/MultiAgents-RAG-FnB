@@ -9,6 +9,9 @@ import numpy as np
 
 from app.cache.exact_cache import normalize_cache_text
 from app.core.constants import Intent
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -30,6 +33,7 @@ class SemanticInMemoryCache:
         ttl_seconds: int = 1800,
         max_size: int = 1000,
         thresholds: Optional[Dict[str, float]] = None,
+        alias_similarity_floor: float = 0.75,
     ) -> None:
         self.ttl_seconds = ttl_seconds
         self.max_size = max_size
@@ -38,6 +42,10 @@ class SemanticInMemoryCache:
             "consultant": 0.82,
             "ignore": 0.90,
         }
+        # A domain-alias match may relax the per-intent threshold, but never below
+        # this cosine floor — otherwise a shared tag (e.g. "wifi") would serve a
+        # cached answer even at ~0 similarity, returning the wrong response.
+        self.alias_similarity_floor = alias_similarity_floor
         self._entries: List[SemanticCacheEntry] = []
 
     def _cleanup_expired(self) -> None:
@@ -220,23 +228,27 @@ class SemanticInMemoryCache:
         if best_entry is None:
             return None
 
-        alias_hit = self._is_safe_domain_alias_hit(
-            intent=intent,
-            query_tags=query_tags,
-            entry_tags=best_entry_tags,
+        alias_hit = (
+            best_similarity >= self.alias_similarity_floor
+            and self._is_safe_domain_alias_hit(
+                intent=intent,
+                query_tags=query_tags,
+                entry_tags=best_entry_tags,
+            )
         )
 
         if best_similarity < threshold and not alias_hit:
-            print(
-                "[SEMANTIC CACHE MISS]",
-                "intent=", intent.value,
-                "text=", text,
-                "best_similarity=", round(best_similarity, 4),
-                "threshold=", threshold,
-                "query_tags=", sorted(query_tags),
-                "entry_tags=", sorted(best_entry_tags),
-                "best_match=", best_entry.key_text,
-                "entries=", len(self._entries),
+            logger.debug(
+                "semantic cache miss intent=%s best_similarity=%.4f threshold=%.2f "
+                "alias_floor=%.2f query_tags=%s entry_tags=%s best_match=%r entries=%d",
+                intent.value,
+                best_similarity,
+                threshold,
+                self.alias_similarity_floor,
+                sorted(query_tags),
+                sorted(best_entry_tags),
+                best_entry.key_text,
+                len(self._entries),
             )
             return None
 

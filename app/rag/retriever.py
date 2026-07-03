@@ -12,6 +12,20 @@ from app.rag.reranker import get_reranker
 
 logger = get_logger(__name__)
 
+# Warn once per index instead of on every request, so a missing vector index is
+# visible in logs without spamming.
+_warned_vector_indexes: set[str] = set()
+
+
+def _warn_vector_index_fallback(index_name: str, exc: Exception) -> None:
+    if index_name not in _warned_vector_indexes:
+        _warned_vector_indexes.add(index_name)
+        logger.warning(
+            "Vector index '%s' unavailable (%s). Falling back to full-scan cosine; "
+            "run Neo4jClient.ensure_vector_indexes() to enable the fast path.",
+            index_name, exc,
+        )
+
 
 STOPWORDS = {
     "cho", "anh", "chị", "em", "tôi", "mình", "một", "ly", "cốc",
@@ -500,8 +514,8 @@ class GraphRetriever:
                     )
                     for r in rows
                 ]
-        except Exception:
-            pass  # vector index chưa tạo → fallback cosine
+        except Exception as exc:
+            _warn_vector_index_fallback("menu_embedding", exc)
 
         # Fallback: fetch rows + Python cosine
         rows = neo4j_client.execute_query(
@@ -549,11 +563,12 @@ class GraphRetriever:
     
     def _retrieve_faq_by_vector(self, query_embedding: list[float]) -> list[RetrievedSource]:
         try:
+            # Use the FAQ-specific index. Querying the shared 'chunk_embedding' index
+            # and filtering `WHERE f:FAQ` *after* top-k lets Chunk nodes crowd out FAQs.
             rows = neo4j_client.execute_query(
                 """
-                CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $embedding)
+                CALL db.index.vector.queryNodes('faq_embedding', $top_k, $embedding)
                 YIELD node AS f, score
-                WHERE f:FAQ
                 RETURN f.id AS id, f.topic AS topic, f.question AS question,
                        f.answer AS answer, score
                 """,
@@ -570,8 +585,8 @@ class GraphRetriever:
                     )
                     for r in rows
                 ]
-        except Exception:
-            pass
+        except Exception as exc:
+            _warn_vector_index_fallback("faq_embedding", exc)
 
         rows = neo4j_client.execute_query(
             """
@@ -620,8 +635,8 @@ class GraphRetriever:
                     )
                     for r in rows
                 ]
-        except Exception:
-            pass
+        except Exception as exc:
+            _warn_vector_index_fallback("chunk_embedding", exc)
 
         rows = neo4j_client.execute_query(
             """

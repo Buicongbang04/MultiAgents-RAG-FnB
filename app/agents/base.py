@@ -32,12 +32,17 @@ class BaseAgent(ABC):
         llm = get_llm_client()
         llm_response = await llm.generate(prepared.llm_request)
 
+        # Language.UNKNOWN is a truthy str Enum, so `x or Language.VI` never fires.
+        resolved_language = agent_input.language
+        if not resolved_language or resolved_language == Language.UNKNOWN:
+            resolved_language = Language.VI
+
         return AgentOutput(
             session_id=agent_input.session_id,
             intent=agent_input.intent,
             agent=self.name,
             answer=llm_response.text,
-            language=agent_input.language or Language.VI,
+            language=resolved_language,
             sources=prepared.rag_result.sources if prepared.rag_result else [],
             metadata={
                 "rag": prepared.rag_result.metadata if prepared.rag_result else {},

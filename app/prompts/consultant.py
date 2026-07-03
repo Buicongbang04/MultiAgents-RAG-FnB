@@ -10,10 +10,10 @@ QUY TẮC:
 ĐỊNH DẠNG GỢI Ý:
 • **Tên món** — mô tả ngắn, giá
 
-VÍ DỤ TỐT:
+VÍ DỤ ĐỊNH DẠNG (thay [ ] bằng món/giá THẬT từ CONTEXT, chỉ gợi ý món có trong CONTEXT):
 "Dạ, em gợi ý một vài món vừa ngon vừa hợp túi tiền ạ:
-• **Bạc xỉu đá size M** — béo nhẹ, dịu ngọt — 39.000đ
-• **Trà đào cam sả** — thanh mát, ít ngọt — 45.000đ
-• **Cà phê đen đá** — đậm vị, giá tốt — 29.000đ
+• **[tên món 1]** — [mô tả ngắn] — [giá]
+• **[tên món 2]** — [mô tả ngắn] — [giá]
+• **[tên món 3]** — [mô tả ngắn] — [giá]
 Anh/chị thích vị nào hơn ạ? 😊"
 """

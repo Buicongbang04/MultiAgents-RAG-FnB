@@ -4,7 +4,10 @@ from typing import Any, AsyncIterator, Dict, List
 
 import httpx
 
+from app.core.logging import get_logger
 from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse
+
+logger = get_logger(__name__)
 
 
 class SGLangClient(BaseLLMClient):
@@ -78,11 +81,9 @@ class SGLangClient(BaseLLMClient):
                 )
             response.raise_for_status()
             data = response.json()
+            choices = data.get("choices") or [{}]
             text = (
-                data.get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "")
-                .strip()
+                (choices[0].get("message", {}).get("content", "") or "").strip()
             ) or self._fallback(request)
 
             return LLMGenerateResponse(
@@ -96,12 +97,11 @@ class SGLangClient(BaseLLMClient):
             )
 
         except Exception as exc:
-            return LLMGenerateResponse(
-                text=self._fallback(request),
-                backend=self.backend,
-                model=self.model,
-                metadata={"fallback_used": True, "error": str(exc)},
-            )
+            # Propagate so RequestQueue can retry, then surface a 503 to the caller.
+            # Swallowing this into a fallback response would (a) defeat the retry
+            # mechanism and (b) cache a broken "system unavailable" answer.
+            logger.warning("SGLang generate failed: %s", exc)
+            raise
 
     async def stream_generate(self, request: LLMGenerateRequest) -> AsyncIterator[str]:
         """

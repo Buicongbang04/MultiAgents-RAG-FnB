@@ -1,0 +1,40 @@
+# Khởi động nhanh: Neo4j + Backend API.
+#   docker compose up -d
+# SGLang (model serving) chạy riêng trên host GPU; đặt LLM_BACKEND=sglang và
+# LLM_BASE_URL=http://<gpu-host>:30000/v1 trong .env để trỏ tới.
+# Mặc định LLM_BACKEND=mock để stack boot được không cần GPU.
+
+services:
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j-fnb
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-change_me}
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: fnb-api
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      # Trong mạng compose, Neo4j reachable qua service name.
+      NEO4J_URI: bolt://neo4j:7687
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:

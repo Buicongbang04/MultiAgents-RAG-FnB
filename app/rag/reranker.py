@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from functools import lru_cache
 from typing import List, Tuple
 
@@ -7,6 +8,15 @@ from app.core.logging import get_logger
 from app.core.schemas import RetrievedSource
 
 logger = get_logger(__name__)
+
+
+def _sigmoid(x: float) -> float:
+    """Numerically-stable sigmoid to map raw cross-encoder logits to [0, 1]."""
+    if x >= 0:
+        z = math.exp(-x)
+        return 1.0 / (1.0 + z)
+    z = math.exp(x)
+    return z / (1.0 + z)
 
 
 class BGEReranker:
@@ -58,18 +68,19 @@ class BGEReranker:
             logger.warning("Reranker predict failed: %s", exc)
             return sources[:top_k]
 
-        ranked = sorted(
-            zip(sources, scores),
-            key=lambda x: x[1],
-            reverse=True,
-        )
+        # CrossEncoder.predict returns raw (unbounded) logits. Squash to a [0, 1]
+        # probability so `threshold` is meaningful and comparable across queries.
+        scored = [(src, _sigmoid(float(logit))) for src, logit in zip(sources, scores)]
+        ranked = sorted(scored, key=lambda x: x[1], reverse=True)
 
         results = []
-        for src, score in ranked[:top_k]:
-            if score < threshold:
+        for src, prob in ranked[:top_k]:
+            if prob < threshold:
                 continue
-            src.metadata["reranker_score"] = float(score)
-            src.score = float(score)
+            src.metadata["reranker_score"] = prob
+            # Preserve upstream fusion/graph-expansion score for debugging.
+            src.metadata["pre_rerank_score"] = src.score
+            src.score = prob
             results.append(src)
 
         return results

@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+models/
+reports/
+*.pdf
+.vscode/
+.chainlit/
+tests/
+benchmarks/
+IMPROVEMENT_PLAN.md

@@ -1,6 +1,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Dict, List, Tuple
 
 from app.core.constants import Intent, Language
@@ -85,8 +86,18 @@ MENU_ITEM_HINTS = [
     "trà sen", "trà đào", "freeze", "sinh tố", "bánh",
 ]
 
+@lru_cache(maxsize=2048)
+def _keyword_pattern(keyword: str) -> "re.Pattern[str]":
+    """Match `keyword` only at word boundaries so "add" does not hit "address"."""
+    return re.compile(r"(?<!\w)" + re.escape(keyword) + r"(?!\w)")
+
+
+def _keyword_matches(text: str, keyword: str) -> bool:
+    return _keyword_pattern(keyword).search(text) is not None
+
+
 def _keyword_score(text: str, keywords: List[str], base_score: float) -> Tuple[float, List[str]]:
-    matched = [kw for kw in keywords if kw in text]
+    matched = [kw for kw in keywords if _keyword_matches(text, kw)]
     if not matched:
         return 0.0, []
 
