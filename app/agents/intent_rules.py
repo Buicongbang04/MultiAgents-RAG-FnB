@@ -3,6 +3,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
+from app.core.config import get_lexicon, get_settings
 from app.core.constants import Intent, Language
 
 @dataclass(frozen=True)
@@ -21,18 +22,10 @@ def normalize_text(text: str) -> str:
 
 def detect_language(text: str) -> Language:
     normalized = normalize_text(text)
+    markers = get_lexicon().language.rule_router_markers
 
-    vietnamese_markers = [
-        "anh", "chị", "em", "cho", "món", "quán", "cà phê", "trà",
-        "sữa", "đá", "nóng", "ngon", "giá", "wifi", "mấy giờ",
-    ]
-    english_markers = [
-        "hello", "hi", "order", "coffee", "tea", "recommend", "wifi",
-        "open", "close", "price", "menu", "pay",
-    ]
-
-    vi_hits = sum(1 for marker in vietnamese_markers if marker in normalized)
-    en_hits = sum(1 for marker in english_markers if marker in normalized)
+    vi_hits = sum(1 for marker in markers["vi"] if marker in normalized)
+    en_hits = sum(1 for marker in markers["en"] if marker in normalized)
 
     if vi_hits > en_hits:
         return Language.VI
@@ -41,90 +34,91 @@ def detect_language(text: str) -> Language:
     return Language.UNKNOWN
 
 
-ORDER_KEYWORDS = [
-    "cho anh", "cho chị", "cho em", "cho tôi", "cho mình",
-    "lấy anh", "lấy chị", "lấy em", "lấy tôi", "lấy mình",
-    "gọi", "đặt", "order", "thêm", "bớt", "bỏ",
-    "tính tiền", "thanh toán", "mua",
-    "một ly", "1 ly", "hai ly", "2 ly",
-    "size s", "size m", "size l",
-    "i want", "i'd like", "can i get", "give me",
-    "add", "remove", "checkout", "pay", "one cup", "two cups",
-]
-
-CONSULTANT_KEYWORDS = [
-    "gợi ý", "tư vấn", "có gì ngon", "món nào ngon", "ngon không",
-    "nên uống", "nên chọn", "ít ngọt", "ngọt ít", "ít béo",
-    "không đắng", "trời nóng", "trời mưa", "rẻ không", "dưới",
-    "phù hợp", "recommend", "suggest", "what is good", "what's good",
-    "less sweet", "not too sweet", "cheap", "budget", "best drink",
-    "what should i drink",
-]
-
-FAQ_KEYWORDS = [
-    "wifi", "mật khẩu", "password", "mấy giờ", "giờ mở cửa",
-    "giờ đóng cửa", "đóng cửa", "mở cửa", "địa chỉ", "ở đâu",
-    "nhà vệ sinh", "toilet", "gửi xe", "giữ xe", "thanh toán momo",
-    "momo", "visa", "chuyển khoản", "vat", "hóa đơn", "xuất hóa đơn",
-    "khuyến mãi", "voucher", "giao hàng", "delivery", "chính sách",
-    "opening hours", "close time", "open time", "where is", "address",
-    "parking", "invoice", "promotion", "policy",
-]
-
-IGNORE_KEYWORDS = [
-    "ừm", "ờ", "alo", "hello", "haha", "hehe", "test", "noise", "...",
-]
-
-QUESTION_MARKERS = [
-    "?", "không", "ko", "hông", "à", "hả", "chưa",
-    "what", "which", "where", "when", "how",
-]
-
-MENU_ITEM_HINTS = [
-    "cà phê", "cafe", "coffee", "bạc xỉu", "latte", "trà", "tea",
-    "trà sen", "trà đào", "freeze", "sinh tố", "bánh",
-]
-
-def _keyword_score(text: str, keywords: List[str], base_score: float) -> Tuple[float, List[str]]:
+def _keyword_score(
+    text: str,
+    keywords: List[str],
+    base_score: float,
+    extra_match_bonus: float,
+    max_extra_bonus: float,
+) -> Tuple[float, List[str]]:
     matched = [kw for kw in keywords if kw in text]
     if not matched:
         return 0.0, []
 
-    score = base_score + min(0.25, 0.05 * (len(matched) - 1))
+    score = base_score + min(max_extra_bonus, extra_match_bonus * (len(matched) - 1))
     return score, matched
+
+def is_availability_question(text: str, has_menu_hint: bool) -> bool:
+    """
+    "có bán phở bò không", "có món cơm gà không" → luôn là hỏi còn món.
+    "có trà đào không", "còn bạc xỉu không ạ" → chỉ khi câu có tên/loại món
+    (tránh bắt nhầm "có wifi không", "có chỗ ngồi không").
+    """
+    order_lexicon = get_lexicon().order
+    if any(re.search(pattern, text) for pattern in order_lexicon.availability_patterns):
+        return True
+    return has_menu_hint and bool(re.search(order_lexicon.generic_availability_pattern, text))
+
 
 def classify_by_rules(text: str) -> IntentMatch:
     normalized = normalize_text(text)
+    lexicon = get_lexicon().router_rules
+    rules = get_settings().router.rules
 
-    order_score, order_matches = _keyword_score(normalized, ORDER_KEYWORDS, 0.70)
-    consultant_score, consultant_matches = _keyword_score(normalized, CONSULTANT_KEYWORDS, 0.65)
-    faq_score, faq_matches = _keyword_score(normalized, FAQ_KEYWORDS, 0.75)
-    ignore_score, ignore_matches = _keyword_score(normalized, IGNORE_KEYWORDS, 0.45)
+    def score(intent: Intent) -> Tuple[float, List[str]]:
+        return _keyword_score(
+            normalized,
+            lexicon.keywords[intent.value],
+            rules.base_scores[intent.value],
+            rules.extra_match_bonus,
+            rules.max_extra_bonus,
+        )
 
-    has_menu_hint = any(hint in normalized for hint in MENU_ITEM_HINTS)
-    has_question_marker = any(marker in normalized for marker in QUESTION_MARKERS)
+    order_score, order_matches = score(Intent.ORDER)
+    consultant_score, consultant_matches = score(Intent.CONSULTANT)
+    faq_score, faq_matches = score(Intent.FAQ)
+    ignore_score, ignore_matches = score(Intent.IGNORE)
+
+    has_menu_hint = any(hint in normalized for hint in lexicon.menu_item_hints)
+    has_question_marker = any(marker in normalized for marker in lexicon.question_markers)
+
+    # Hỏi còn món không → order (món ngoài menu sẽ bị guardrail ở order agent chặn).
+    # Nhường cho FAQ/tư vấn nếu câu có tín hiệu của chúng ("có cà phê nào ngon không").
+    if (
+        not faq_matches
+        and not consultant_matches
+        and is_availability_question(normalized, has_menu_hint)
+    ):
+        return IntentMatch(
+            intent=Intent.ORDER,
+            score=rules.order_priority_threshold,
+            matched_keywords=["availability_question"],
+            reason="availability question: customer asks whether an item is sold",
+        )
 
     # Có số lượng + món → order.
-    quantity_pattern = r"\b(1|2|3|4|5|một|hai|ba|bốn|năm)\b"
-    if has_menu_hint and re.search(quantity_pattern, normalized):
-        order_score += 0.20
+    if has_menu_hint and re.search(lexicon.quantity_pattern, normalized):
+        order_score += rules.quantity_menu_bonus
         order_matches.append("quantity+menu_item")
 
     # Tên món đơn thuần (không có số lượng, không có FAQ/consultant signal) → order.
     if has_menu_hint and not faq_matches and not consultant_matches:
-        order_score = max(order_score, 0.55)
+        order_score = max(order_score, rules.menu_item_alone_min_score)
         if "menu_item_alone" not in order_matches:
             order_matches.append("menu_item_alone")
 
     # Hỏi khẩu vị/gợi ý/món ngon → consultant.
-    preference_words = ["ngon", "ít ngọt", "rẻ", "recommend", "suggest", "good"]
-    if has_question_marker and has_menu_hint and any(word in normalized for word in preference_words):
-        consultant_score += 0.15
+    if (
+        has_question_marker
+        and has_menu_hint
+        and any(word in normalized for word in lexicon.preference_words)
+    ):
+        consultant_score += rules.preference_question_bonus
         consultant_matches.append("question_about_menu_preference")
 
     # Greeting/noise rất ngắn → ignore.
-    if len(normalized) <= 8 and ignore_matches:
-        ignore_score += 0.25
+    if len(normalized) <= rules.short_noise_max_chars and ignore_matches:
+        ignore_score += rules.short_noise_bonus
 
     candidates: Dict[Intent, Tuple[float, List[str], str]] = {
         Intent.ORDER: (order_score, order_matches, "matched order/action keywords"),
@@ -133,11 +127,23 @@ def classify_by_rules(text: str) -> IntentMatch:
         Intent.IGNORE: (ignore_score, ignore_matches, "matched greeting/noise keywords"),
     }
 
+    # Câu hỏi thông tin quán ("Có thanh toán momo không?") chứa từ khóa order
+    # ("thanh toán") nhưng không có số lượng món → không được ép sang order.
+    is_store_info_question = (
+        bool(faq_matches)
+        and has_question_marker
+        and "quantity+menu_item" not in order_matches
+    )
+
     # Rule đã chốt: nếu có tín hiệu order rõ ràng thì ưu tiên order.
-    if order_score >= 0.70 and order_matches:
+    if (
+        order_score >= rules.order_priority_threshold
+        and order_matches
+        and not is_store_info_question
+    ):
         return IntentMatch(
             intent=Intent.ORDER,
-            score=min(order_score, 0.99),
+            score=min(order_score, rules.max_confidence),
             matched_keywords=order_matches,
             reason="order priority: explicit ordering/payment/modification signal",
         )
@@ -148,14 +154,14 @@ def classify_by_rules(text: str) -> IntentMatch:
     if best_score <= 0.0 or not best_matches:
         return IntentMatch(
             intent=Intent.IGNORE,
-            score=0.50,
+            score=rules.no_match_score,
             matched_keywords=[],
             reason="no reliable business intent matched",
         )
 
     return IntentMatch(
         intent=best_intent,
-        score=min(best_score, 0.99),
+        score=min(best_score, rules.max_confidence),
         matched_keywords=best_matches,
         reason=reason,
     )

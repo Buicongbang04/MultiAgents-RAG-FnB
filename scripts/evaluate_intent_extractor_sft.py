@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -10,13 +9,13 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-BASE_MODEL = os.getenv("INTENT_EXTRACTOR_BASE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
-ADAPTER_DIR = os.getenv(
-    "INTENT_EXTRACTOR_ADAPTER_DIR",
-    "models/intent-extractor-qwen2.5-0.5b-lora",
-)
+from app.core.config import get_settings, get_training_config
 
-TEST_META = Path("data/intent_extraction/sft/test_with_meta.jsonl")
+HF_CONFIG = get_settings().intent_extractor.hf
+BASE_MODEL = HF_CONFIG.base_model
+ADAPTER_DIR = HF_CONFIG.adapter_dir
+
+TEST_META = Path(get_training_config().intent_extractor_sft.test_path)
 
 VALID_INTENTS = {"order", "consultant", "faq", "ignore"}
 VALID_LANGUAGES = {"vi", "en"}
@@ -116,7 +115,7 @@ def generate_prediction(model, tokenizer, text: str) -> str:
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=128,
+            max_new_tokens=HF_CONFIG.max_new_tokens,
             do_sample=False,
             temperature=0.0,
             pad_token_id=tokenizer.eos_token_id,

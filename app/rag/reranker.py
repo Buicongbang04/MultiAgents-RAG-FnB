@@ -15,7 +15,7 @@ class BGEReranker:
     Chỉ load model khi được gọi lần đầu (lazy init).
     """
 
-    def __init__(self, model_name: str = "BAAI/bge-reranker-v2-m3", device: str = "cuda") -> None:
+    def __init__(self, model_name: str, device: str) -> None:
         self.model_name = model_name
         self.device = device
         self._model = None
@@ -93,10 +93,8 @@ def get_reranker():
     from app.core.config import get_settings
     settings = get_settings()
 
-    backend = getattr(settings, "reranker_backend", "null")
-    if backend == "bge":
-        model = getattr(settings, "reranker_model", "BAAI/bge-reranker-v2-m3")
-        device = getattr(settings, "reranker_device", "cuda")
-        return BGEReranker(model_name=model, device=device)
+    config = settings.reranker
+    if config.backend == "bge":
+        return BGEReranker(model_name=config.model, device=config.device)
 
     return NullReranker()

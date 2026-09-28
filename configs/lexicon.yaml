@@ -1,0 +1,201 @@
+# =============================================================================
+# Từ vựng miền (domain lexicon): từ khoá, alias, stopword, regex.
+#
+# Tách khỏi app.yaml vì đây là dữ liệu ngôn ngữ — người vận hành có thể bổ sung
+# từ khoá cho menu/chính sách mới mà không đụng tới tham số kỹ thuật.
+# Regex dùng cú pháp Python; viết trong nháy đơn để không phải escape "\".
+# =============================================================================
+
+# ── Nhận diện ngôn ngữ ────────────────────────────────────────────────────────
+language:
+  # Mọi chữ cái có dấu tiếng Việt (ờ, ó, á... là codepoint riêng, không khớp "ơ").
+  vi_diacritics_pattern: '[àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]'
+  english_word_pattern: '\b(hello|hi|order|coffee|tea|recommend|what|which|where)\b'
+  # Rule router: đếm số marker mỗi bên, bên nhiều hơn thắng.
+  rule_router_markers:
+    vi: ["anh", "chị", "em", "cho", "món", "quán", "cà phê", "trà", "sữa", "đá", "nóng", "ngon", "giá", "wifi", "mấy giờ"]
+    en: ["hello", "hi", "order", "coffee", "tea", "recommend", "wifi", "open", "close", "price", "menu", "pay"]
+  intent_extractor_vi_markers: ["đ", "ă", "â", "ê", "ô", "ơ", "ư", "anh", "chị", "em", "mình", "quán", "món", "giá", "ngon", "mật khẩu", "gợi ý", "đóng cửa", "mở cửa"]
+  hf_router_vi_markers: ["à", "á", "ạ", "ả", "ã", "ă", "ắ", "ằ", "ẳ", "ẵ", "ặ", "â", "ấ", "ầ", "ẩ", "ẫ", "ậ", "đ", "ê", "ế", "ề", "ể", "ễ", "ệ", "ô", "ố", "ồ", "ổ", "ỗ", "ộ", "ơ", "ớ", "ờ", "ở", "ỡ", "ợ", "ư", "ứ", "ừ", "ử", "ữ", "ự", "quán", "món", "cho", "anh", "chị", "em", "mình"]
+
+# ── Router rule-based (app/agents/intent_rules.py) ────────────────────────────
+router_rules:
+  keywords:
+    order: ["cho anh", "cho chị", "cho em", "cho tôi", "cho mình", "lấy anh", "lấy chị", "lấy em", "lấy tôi", "lấy mình", "gọi", "đặt", "order", "thêm", "bớt", "bỏ", "tính tiền", "thanh toán", "mua", "một ly", "1 ly", "hai ly", "2 ly", "size s", "size m", "size l", "i want", "i'd like", "can i get", "give me", "add", "remove", "checkout", "pay", "one cup", "two cups"]
+    consultant: ["gợi ý", "tư vấn", "có gì ngon", "món nào ngon", "ngon không", "nên uống", "nên chọn", "ít ngọt", "ngọt ít", "ít béo", "không đắng", "trời nóng", "trời mưa", "rẻ không", "dưới", "phù hợp", "recommend", "suggest", "what is good", "what's good", "less sweet", "not too sweet", "cheap", "budget", "best drink", "what should i drink", "mát lạnh", "đồ lạnh", "uống lạnh", "giải nhiệt", "rẻ hơn", "ngọt hơn", "đậm hơn", "dễ uống", "món nào", "uống gì"]
+    faq: ["wifi", "mật khẩu", "password", "mấy giờ", "giờ mở cửa", "giờ đóng cửa", "đóng cửa", "mở cửa", "địa chỉ", "ở đâu", "nhà vệ sinh", "toilet", "gửi xe", "giữ xe", "thanh toán momo", "momo", "visa", "chuyển khoản", "vat", "hóa đơn", "xuất hóa đơn", "khuyến mãi", "voucher", "giao hàng", "delivery", "chính sách", "opening hours", "close time", "open time", "where is", "address", "parking", "invoice", "promotion", "policy"]
+    ignore: ["ừm", "ờ", "alo", "hello", "haha", "hehe", "test", "noise", "..."]
+  question_markers: ["?", "không", "ko", "hông", "à", "hả", "chưa", "what", "which", "where", "when", "how"]
+  menu_item_hints: ["cà phê", "cafe", "coffee", "bạc xỉu", "latte", "trà", "tea", "trà sen", "trà đào", "freeze", "sinh tố", "bánh"]
+  preference_words: ["ngon", "ít ngọt", "rẻ", "recommend", "suggest", "good"]
+  quantity_pattern: '\b(1|2|3|4|5|một|hai|ba|bốn|năm)\b'
+
+# ── Retrieval (app/rag/retriever.py) ──────────────────────────────────────────
+retrieval:
+  # Bỏ khỏi query trước khi tìm keyword. "quán", "những"... xuất hiện ở hầu hết
+  # FAQ/chunk nên gây hoà điểm, đẩy mất nguồn đúng.
+  stopwords: ["cho", "anh", "chị", "em", "tôi", "mình", "một", "ly", "cốc", "giúp", "với", "nhé", "ạ", "ơi", "có", "gì", "không", "ko", "là", "vậy", "tên", "nào", "món", "xin", "hỏi", "quán", "những", "bên", "đây", "muốn", "gọi", "lấy", "đặt", "bán", "order", "thêm", "nữa"]
+  # canonical term ← các cách viết khác
+  keyword_aliases:
+    wifi: ["wifi", "mật khẩu", "password"]
+    mở cửa: ["mở cửa", "giờ mở cửa", "mấy giờ"]
+    đóng cửa: ["đóng cửa", "giờ đóng cửa", "mấy giờ"]
+    bạc xỉu: ["bạc xỉu", "bac xiu"]
+    cà phê: ["cà phê", "cafe", "coffee"]
+    trà: ["trà", "tea"]
+    ít ngọt: ["ít ngọt", "less sweet"]
+  # topic FAQ → từ khoá kích hoạt boost
+  faq_boost_rules:
+    wifi: ["wifi", "wi-fi", "internet", "mạng", "mat khau", "mật khẩu", "password"]
+    opening_hours: ["giờ", "mấy giờ", "đóng cửa", "mở cửa", "open", "close"]
+    delivery: ["ship", "giao hàng", "delivery", "mang đi", "take away"]
+    size: ["size", "kích cỡ", "cỡ ly", "s m l"]
+  # Stopword cho lexical overlap ở bước lightweight rerank
+  lexical_stopwords: ["là", "gì", "của", "quán", "cho", "anh", "chị", "em", "tôi", "một", "ly", "có", "không", "the", "a", "an", "is", "are", "what"]
+
+# ── Semantic cache (app/cache/semantic_cache.py) ──────────────────────────────
+semantic_cache:
+  # tag → regex. Dùng để quyết định "domain alias hit" cho FAQ.
+  domain_tags:
+    wifi: ['\bwifi\b', 'wi fi', 'internet', 'mạng', 'pass', 'password', 'mật khẩu']
+    opening_hours: ['mấy giờ', 'giờ mở cửa', 'giờ đóng cửa', 'đóng cửa', 'mở cửa', 'open', 'close', 'closing']
+    payment: ['thanh toán', 'momo', 'chuyển khoản', 'tiền mặt', 'visa', 'bank', 'payment', 'pay']
+    delivery: ['giao hàng', 'ship', 'delivery', 'mang đi', 'take away', 'takeaway']
+    budget: ['rẻ', 'giá mềm', 'tiết kiệm', 'ngon rẻ', 'không quá mắc', 'budget', 'cheap', 'affordable']
+    recommendation: ['gợi ý', 'recommend', 'tư vấn', 'món nào', 'có gì ngon', 'nên uống', 'dễ uống', 'best']
+    coffee: ['cà phê', 'coffee', 'bạc xỉu', 'latte', 'americano']
+    tea: ['trà', 'tea', 'sen', 'đào', 'vải']
+  # Chỉ các tag này được phép alias-hit (FAQ ổn định, cùng chủ đề = cùng đáp án).
+  faq_alias_tags: [wifi, opening_hours, payment, delivery]
+
+# ── Intent extractor rule-based (app/cache/intent_extractor.py) ───────────────
+intent_extractor:
+  subject_patterns:
+    - '\bcho\s+(anh|chị|em|mình|tôi|tui|bọn em|tụi em)\b'
+    - '\b(anh|chị|em|mình|tôi|tui)\s+(muốn|cần|hỏi|xin|đặt|gọi|lấy|order)\b'
+    - '\b(can i|could i|may i|i want|i need|i would like)\b'
+  english_subject_pattern: '\b(i|me|my)\b'
+  context_patterns:
+    - '\b(hôm nay|ngày mai|mai|tối nay|sáng nay|chiều nay|trưa nay)\b'
+    - '\b(\d{1,2}h|\d{1,2}\s*giờ|\d{1,2}:\d{2})\b'
+    - '\b(sinh nhật|họp|đi làm|đi học|mang đi|take away|takeaway|delivery|ship)\b'
+    - '\b(\d+\s*(người|ly|cốc|phần|bạn))\b'
+    - '\b(ít ngọt|không đường|nhiều đá|ít đá|nóng|đá|size\s*[sml]|size\s*[SML])\b'
+    - '\b(giá mềm|giá rẻ|rẻ|budget|affordable|cheap|dễ uống)\b'
+  filler_patterns:
+    - '^(dạ|ạ|nha|nhé|với|giúp|giúp em|cho em|cho anh|cho chị)\s+'
+    - '\s+(nha|nhé|ạ|với|giúp em|giúp anh|được không|được hông)\s*$'
+  filler_words_pattern: '\b(dạ|ạ|nha|nhé|với|giúp|em hỏi xíu|hỏi xíu|cho hỏi|xin hỏi)\b'
+
+  # FAQ: khớp theo thứ tự, rule đầu tiên khớp sẽ quyết định cache key.
+  # only_for_intent: rule chỉ áp dụng khi router ra intent này.
+  faq_rules:
+    - name: faq_wifi
+      pattern: '\b(wifi|wi fi|internet|mạng|pass|password|mật khẩu)\b'
+      confidence: 0.98
+      vi: {action: hỏi mật khẩu wifi, cache_key: mật khẩu wifi}
+      en: {action: ask wifi password, cache_key: wifi password}
+    - name: faq_opening_hours
+      pattern: '(mấy giờ|giờ mở cửa|giờ đóng cửa|đóng cửa|mở cửa|open|close|closing)'
+      confidence: 0.96
+      vi: {action: hỏi giờ mở cửa đóng cửa, cache_key: giờ mở cửa đóng cửa}
+      en: {action: ask opening hours, cache_key: opening hours}
+    - name: faq_payment
+      pattern: '(thanh toán|momo|chuyển khoản|tiền mặt|visa|bank|payment|pay)'
+      confidence: 0.95
+      vi: {action: hỏi phương thức thanh toán, cache_key: phương thức thanh toán}
+      en: {action: ask payment methods, cache_key: payment methods}
+    - name: faq_delivery
+      pattern: '(giao hàng|ship|delivery|mang đi|take away|takeaway)'
+      only_for_intent: faq
+      confidence: 0.94
+      vi: {action: hỏi chính sách giao hàng mang đi, cache_key: giao hàng mang đi}
+      en: {action: ask delivery takeaway policy, cache_key: delivery takeaway policy}
+
+  recommend_pattern: '(gợi ý|recommend|tư vấn|món nào|có gì ngon|nên uống|dễ uống|best)'
+  budget_pattern: '(rẻ|giá mềm|tiết kiệm|ngon rẻ|không quá mắc|budget|cheap|affordable)'
+  budget_preference: giá rẻ
+  # Tiêu chí tư vấn đưa vào cache key — thứ tự cố định để key ổn định.
+  consultant_preferences:
+    - {name: cà phê, pattern: '(cà phê|cafe|coffee|bạc xỉu|latte|americano|cappuccino)'}
+    - {name: trà, pattern: '(trà|\btea\b)'}
+    - {name: freeze, pattern: '(freeze|đá xay|blended)'}
+    - {name: bánh, pattern: '(bánh|cake|food|ăn kèm)'}
+    - {name: không cà phê, pattern: '(không uống cà phê|không cà phê|no coffee)'}
+    - {name: ít ngọt, pattern: '(ít ngọt|ngọt ít|không quá ngọt|không ngọt|không đường|less sweet|not too sweet)'}
+    - {name: ngọt, pattern: '(?<!ít )(?<!quá )\bngọt\b(?! ít)|\bsweet\b'}
+    - {name: đậm vị, pattern: '(đậm|mạnh|strong|tỉnh táo|tỉnh ngủ)'}
+    - {name: giải nhiệt, pattern: '(trời nóng|giải nhiệt|mát|hot weather|refreshing)'}
+    - {name: nóng, pattern: '(uống nóng|đồ nóng|trời lạnh|trời mưa|\bhot drink\b)'}
+    - {name: đồ lạnh, pattern: '((?<!trời )lạnh|\biced\b|\bcold\b)'}
+    - {name: béo, pattern: '(béo|sữa nhiều|creamy)'}
+    - {name: dễ uống, pattern: '(dễ uống|nhẹ nhẹ|easy to drink|light)'}
+  # preference bị loại khi preference kia cũng xuất hiện: {bị loại: khi có}
+  preference_overrides:
+    cà phê: không cà phê
+    ngọt: ít ngọt
+  consultant_generic: {vi: gợi ý món ngon, en: recommend menu item}
+  consultant_prefix: {vi: gợi ý, en: recommend}
+  order_strip_pattern: '\b(cho|anh|chị|em|mình|tôi|tui|lấy|gọi|order|đặt|mua)\b'
+  confidence:
+    consultant_generic: 0.90
+    consultant_with_preferences: 0.92
+    order: 0.80
+    ignore: 0.75
+    fallback: 0.70
+
+# ── Hội thoại nhiều lượt (app/services/conversation.py) ───────────────────────
+conversation:
+  # Dấu hiệu câu nối tiếp lượt trước ("còn trà thì sao?", "vậy size L").
+  followup_markers: ['^(còn|thế còn|vậy còn|vậy|thế|rồi|thêm|với lại|nhưng)\b', '\bthì sao\b', '\bhơn\b', '\b(what|how) about\b', '^(and|also)\b']
+  # Lời chào / nhiễu thật sự → không coi là follow-up (so khớp nguyên từ).
+  greeting_words: ["hello", "hi", "alo", "chào", "xin chào", "haha", "hehe", "test", "cảm ơn", "cám ơn", "thanks", "thank you", "ok", "oke"]
+
+# ── Order: trích size / số lượng (app/agents/order_resolution.py) ─────────────
+order:
+  # Nhiều cách nói size. Lần nhắc sau cùng trong câu thắng ("size S… à size L" → L).
+  size_patterns:
+    S: ['\bsize\s*s\b', '\bcỡ\s*s\b', '\b(ly|size|cỡ)\s*nhỏ\b', '\bsmall\b']
+    M: ['\bsize\s*m\b', '\bcỡ\s*m\b', '\b(ly|size|cỡ)\s*vừa\b', '\bmedium\b']
+    L: ['\bsize\s*l\b', '\bcỡ\s*l\b', '\b(ly|size|cỡ)\s*(lớn|to)\b', '\blarge\b']
+  # Trả lời cộc lốc cho câu hỏi size: "M", "vừa nhé", "lớn ạ" — chỉ xét từ CUỐI câu
+  # sau khi bỏ trợ từ, để "vừa gọi xong" không bị hiểu là size M.
+  trailing_particles: ["ạ", "nhé", "nha", "nhe", "thôi", "đi", "luôn", "please", "đó", "nhá"]
+  bare_size_words:
+    S: ["s", "nhỏ"]
+    M: ["m", "vừa"]
+    L: ["l", "lớn", "to"]
+  quantity_digit_pattern: '(?<![\w.,])(\d{1,2})(?![\w.,])'
+  # Số viết bằng chữ chỉ tính khi đi kèm đơn vị, tránh nhầm "ba" (bố)…
+  quantity_word_pattern: '(?<!\w)(một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười)\s+(ly|cốc|phần|cái|chiếc|suất)\b'
+  quantity_words: {một: 1, hai: 2, ba: 3, bốn: 4, năm: 5, sáu: 6, bảy: 7, tám: 8, chín: 9, mười: 10}
+  # Size lạ ("size XL") → báo không có, thay vì hỏi lại như chưa chọn.
+  generic_size_pattern: '\b(?:size|cỡ)\s*([a-z]{1,3})\b'
+  # Khớp tên món một phần chỉ dựa trên từ ĐẶC TRƯNG: "cho 1 trà" không được tự chọn
+  # "Trà vải"; "trà bưởi" vẫn ra "Trà bưởi mật ong"; "cà phê sữa" → hỏi đá hay nóng.
+  generic_item_words: ["trà", "cà", "phê", "cafe", "coffee", "tea", "bánh", "freeze", "ly", "món"]
+  max_item_choices: 6            # liệt kê món khi mơ hồ ("cho 2 trà" → mọi loại trà)
+  # Câu hỏi còn món không → route order; món ngoài menu được guardrail chặn.
+  # Chỉ dùng mẫu có "bán"/"món" để không bắt nhầm "có wifi không", "có chỗ ngồi không".
+  availability_patterns:
+    - '\b(có|còn)\s+bán\s+.+\s+(không|ko|k|hông|chưa)\b'
+    - '\bbán\s+.+\s+(không|ko|k|hông)\b'
+    - '\b(có|còn)\s+món\s+(?!nào\b).+\s+(không|ko|k|hông)\b'
+    - '\b(do you (have|sell|serve))\b'
+  # "có trà đào không", "còn bạc xỉu không" — chỉ tính là hỏi còn món khi câu có tên/loại món.
+  generic_availability_pattern: '^(quán\s+|bên\s+(em|mình)\s+)?(có|còn)\s+.+\s+(không|ko|k|hông|chưa)(\s+(ạ|nhỉ|vậy|thế|nha|nhé|em|anh|chị|bạn))*\s*\??$'
+  # Từ không phải tên món: bỏ qua khi kiểm tra "khách có nhắc món ngoài menu không".
+  non_item_words: ["size", "cỡ", "ly", "cốc", "phần", "cái", "chiếc", "suất", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín", "mười", "đá", "nóng", "ít", "nhiều", "không", "đường", "sữa", "à", "ơi", "nhé", "nha", "ạ", "với", "và", "thôi", "luôn", "đi", "được", "dc", "k", "ko", "bạn", "anh", "chị", "em", "mình", "tôi", "tui"]
+
+# ── Trạng thái đơn / giỏ hàng (app/services/order_state.py) ───────────────────
+# Khớp TRỌN câu (sau khi bỏ trợ từ) để không bắt nhầm câu hỏi thật:
+# "ok em" → đồng ý, nhưng "Có thanh toán momo không?" không phải lệnh chốt đơn.
+order_dialogue:
+  particles: ["ạ", "nhé", "nha", "nhe", "nhá", "em", "anh", "chị", "bạn", "ơi", "à", "đó", "luôn", "đi", "please", "nhé em", "vậy"]
+  affirm: ["ok", "oke", "okay", "oki", "okie", "ừ", "ừm", "uh", "uhm", "vâng", "dạ", "dạ vâng", "đúng", "đúng rồi", "chuẩn", "chuẩn rồi", "chốt", "xác nhận", "được", "được rồi", "đồng ý", "lấy", "lấy luôn", "có", "yes", "yep", "sure", "correct"]
+  negate: ["không", "ko", "k", "hông", "thôi", "sai", "sai rồi", "không phải", "không lấy", "không đúng", "no", "nope"]
+  checkout: ["chốt đơn", "tính tiền", "thanh toán", "thanh toán đi", "vậy thôi", "vậy là đủ", "đủ rồi", "hết rồi", "xong rồi", "hết", "vậy đủ rồi", "checkout", "that's all", "không cần thêm", "không thêm gì", "không thêm"]
+  view_cart: ["xem đơn", "xem lại đơn", "đơn của tôi", "đơn của mình", "đơn hiện tại", "giỏ hàng", "tôi đã gọi gì", "mình đã gọi gì", "đã gọi những gì", "kiểm tra đơn"]
+  cancel_order: ["hủy đơn", "huỷ đơn", "hủy hết", "huỷ hết", "bỏ hết", "xóa đơn", "xoá đơn", "không đặt nữa", "cancel order"]
+  # "bỏ trà vải", "không lấy bạc xỉu nữa" — phần còn lại phải khớp một món trong giỏ.
+  remove_pattern: '^(bỏ|xóa|xoá|hủy|huỷ|không lấy|bớt|remove)\s+(?:món\s+)?(.+?)(?:\s+(?:đi|nữa|ra|nhé|nha|ạ))*$'

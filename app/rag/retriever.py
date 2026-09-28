@@ -2,7 +2,7 @@ import re
 from collections import defaultdict
 import math
 
-from app.core.config import get_settings
+from app.core.config import get_lexicon, get_settings
 from app.core.constants import Intent, SourceType
 from app.core.logging import get_logger
 from app.core.schemas import RAGQuery, RAGResult, RetrievedSource
@@ -13,24 +13,6 @@ from app.rag.reranker import get_reranker
 logger = get_logger(__name__)
 
 
-STOPWORDS = {
-    "cho", "anh", "chị", "em", "tôi", "mình", "một", "ly", "cốc",
-    "giúp", "với", "nhé", "ạ", "ơi", "có", "gì", "không", "ko",
-    "là", "vậy", "tên", "nào", "món", "xin", "hỏi",
-}
-
-
-KEYWORD_ALIASES = {
-    "wifi": ["wifi", "mật khẩu", "password"],
-    "mở cửa": ["mở cửa", "giờ mở cửa", "mấy giờ"],
-    "đóng cửa": ["đóng cửa", "giờ đóng cửa", "mấy giờ"],
-    "bạc xỉu": ["bạc xỉu", "bac xiu"],
-    "cà phê": ["cà phê", "cafe", "coffee"],
-    "trà": ["trà", "tea"],
-    "ít ngọt": ["ít ngọt", "less sweet"],
-}
-
-
 def normalize_query(text: str) -> str:
     text = text.lower().strip()
     text = re.sub(r"[^\w\sÀ-ỹ]", " ", text)
@@ -38,12 +20,22 @@ def normalize_query(text: str) -> str:
     return text
 
 
+def build_clean_query(text: str) -> str:
+    """Bỏ stopword/số, giữ thứ tự từ: "Anh muốn gọi cappuccino ít ngọt" → "cappuccino ít ngọt"."""
+    stopwords = set(get_lexicon().retrieval.stopwords)
+    tokens = [t for t in normalize_query(text).split() if t not in stopwords and not t.isdigit()]
+    return " ".join(tokens) or text
+
+
 def extract_search_terms(text: str) -> list[str]:
     q = normalize_query(text)
+    lexicon = get_lexicon().retrieval
+    query_config = get_settings().rag.query
+    stopwords = set(lexicon.stopwords)
 
     terms = []
 
-    for canonical, aliases in KEYWORD_ALIASES.items():
+    for canonical, aliases in lexicon.keyword_aliases.items():
         for alias in aliases:
             if alias in q:
                 terms.append(canonical)
@@ -51,7 +43,7 @@ def extract_search_terms(text: str) -> list[str]:
 
     tokens = [
         t for t in q.split()
-        if len(t) >= 2 and t not in STOPWORDS
+        if len(t) >= query_config.min_token_length and t not in stopwords
     ]
 
     terms.extend(tokens)
@@ -61,12 +53,14 @@ def extract_search_terms(text: str) -> list[str]:
     if not terms:
         terms = [q]
 
-    return terms[:6]
+    return terms[: query_config.max_terms]
 
 
 class GraphRetriever:
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.config = self.settings.rag
+        self.lexicon = get_lexicon().retrieval
 
     async def retrieve(self, rag_query: RAGQuery) -> RAGResult:
         intent = rag_query.intent
@@ -93,9 +87,9 @@ class GraphRetriever:
         else:
             sources = []
 
-        sources = self._deduplicate_sources(sources)
+        sources = self._score_by_term_coverage(sources, terms)
         sources = sorted(sources, key=lambda x: x.score, reverse=True)
-        top_sources = sources[: self.settings.rag_top_k]
+        top_sources = sources[: rag_query.top_k or self.config.top_k]
         context_text = self._build_context(top_sources)
 
         logger.info(
@@ -119,7 +113,7 @@ class GraphRetriever:
         top_k: int | None = None,
     ) -> RAGResult:
         query = rag_query.query.strip()
-        top_k = top_k or rag_query.top_k or self.settings.rag_top_k
+        top_k = top_k or rag_query.top_k or self.config.top_k
 
         embedding_client = get_embedding_client()
         query_embedding = await embedding_client.embed_text(query)
@@ -153,9 +147,12 @@ class GraphRetriever:
     async def retrieve_hybrid(
         self,
         rag_query: RAGQuery,
-        keyword_weight: float = 0.65,
-        vector_weight: float = 0.35,
+        keyword_weight: float | None = None,
+        vector_weight: float | None = None,
     ) -> RAGResult:
+        weights = self._fusion_weights(rag_query.intent)
+        keyword_weight = weights.keyword_weight if keyword_weight is None else keyword_weight
+        vector_weight = weights.vector_weight if vector_weight is None else vector_weight
 
         keyword_result = await self.retrieve(rag_query)
         vector_result = await self.retrieve_by_vector(rag_query)
@@ -165,7 +162,7 @@ class GraphRetriever:
             vector_sources=vector_result.sources,
             keyword_weight=keyword_weight,
             vector_weight=vector_weight,
-            top_k=rag_query.top_k or self.settings.rag_top_k,
+            top_k=rag_query.top_k or self.config.top_k,
         )
 
         if rag_query.intent == Intent.FAQ:
@@ -190,13 +187,20 @@ class GraphRetriever:
     async def retrieve_hybrid_with_graph_expansion(
         self,
         rag_query: RAGQuery,
-        keyword_weight: float = 0.65,
-        vector_weight: float = 0.35,
-        expansion_weight: float = 0.75,
+        keyword_weight: float | None = None,
+        vector_weight: float | None = None,
+        expansion_weight: float | None = None,
     ) -> RAGResult:
+        weights = self._fusion_weights(rag_query.intent)
+        keyword_weight = weights.keyword_weight if keyword_weight is None else keyword_weight
+        vector_weight = weights.vector_weight if vector_weight is None else vector_weight
+        if expansion_weight is None:
+            expansion_weight = self.config.expansion.weight
 
+        # Lấy rộng candidate_pool_size ứng viên, chỉ cắt về top_k sau khi rerank.
+        # Cắt sớm về top_k khiến reranker không bao giờ thấy nguồn đúng khi nó bị hòa điểm.
         hybrid_result = await self.retrieve_hybrid(
-            rag_query=rag_query,
+            rag_query=rag_query.model_copy(update={"top_k": self.config.candidate_pool_size}),
             keyword_weight=keyword_weight,
             vector_weight=vector_weight,
         )
@@ -217,15 +221,18 @@ class GraphRetriever:
             sources=final_sources,
         )
 
-        top_k = rag_query.top_k or self.settings.rag_top_k
+        top_k = rag_query.top_k or self.config.top_k
 
         # BGE reranker (nếu được bật)
         reranker = get_reranker()
+        rerank_query = rag_query.query
+        if rag_query.intent and rag_query.intent.value in self.config.rerank_clean_query_intents:
+            rerank_query = build_clean_query(rag_query.query)
         final_sources = reranker.rerank(
-            query=rag_query.query,
+            query=rerank_query,
             sources=final_sources,
             top_k=top_k,
-            threshold=self.settings.reranker_threshold,
+            threshold=self.settings.reranker.threshold,
         )
 
         return RAGResult(
@@ -249,7 +256,7 @@ class GraphRetriever:
         rag_query: RAGQuery,
     ) -> RAGResult:
 
-        mode = getattr(self.settings, "rag_retrieval_mode", "keyword")
+        mode = self.config.retrieval_mode
 
         if mode == "keyword":
             return await self.retrieve(rag_query)
@@ -257,24 +264,11 @@ class GraphRetriever:
         if mode == "vector":
             return await self.retrieve_by_vector(rag_query)
 
+        # Trọng số fusion theo intent lấy từ rag.fusion (FAQ tin vector hơn).
         if mode == "hybrid":
-            if rag_query.intent == Intent.FAQ:
-                return await self.retrieve_hybrid(
-                    rag_query,
-                    keyword_weight=0.45,
-                    vector_weight=0.55,
-                )
-
             return await self.retrieve_hybrid(rag_query)
 
         if mode == "hybrid_graph":
-            if rag_query.intent == Intent.FAQ:
-                return await self.retrieve_hybrid_with_graph_expansion(
-                    rag_query,
-                    keyword_weight=0.45,
-                    vector_weight=0.55,
-                )
-
             return await self.retrieve_hybrid_with_graph_expansion(rag_query)
 
         logger.warning(
@@ -284,7 +278,13 @@ class GraphRetriever:
 
         return await self.retrieve(rag_query)
 
+    def _fusion_weights(self, intent: Intent | None):
+        if intent == Intent.FAQ:
+            return self.config.fusion.faq
+        return self.config.fusion.default
+
     def _retrieve_menu(self, terms: list[str]) -> list[RetrievedSource]:
+        keyword = self.config.keyword
         sources = []
 
         for term in terms:
@@ -313,9 +313,9 @@ class GraphRetriever:
                     m.price as price,
                     m.category as category,
                     m.size as size
-                LIMIT 20
+                LIMIT $limit
                 """,
-                {"term": term},
+                {"term": term, "limit": self.config.keyword.limit_per_term},
             )
 
             for row in rows:
@@ -332,7 +332,11 @@ class GraphRetriever:
                         source_id=row["id"],
                         source_type=SourceType.MENU,
                         text=text,
-                        score=0.95 if term in row["name"].lower() else 0.85,
+                        score=(
+                            keyword.score_menu_name_match
+                            if term in row["name"].lower()
+                            else keyword.score_menu_other_match
+                        ),
                         metadata={
                             "price": row["price"],
                             "category": row["category"],
@@ -361,9 +365,9 @@ class GraphRetriever:
                     f.topic as topic,
                     f.question as question,
                     f.answer as answer
-                LIMIT 20
+                LIMIT $limit
                 """,
-                {"term": term},
+                {"term": term, "limit": self.config.keyword.limit_per_term},
             )
 
             for row in rows:
@@ -372,7 +376,7 @@ class GraphRetriever:
                         source_id=row["id"],
                         source_type=SourceType.FAQ,
                         text=f"Q: {row['question']}\nA: {row['answer']}",
-                        score=0.95,
+                        score=self.config.keyword.score_faq,
                         metadata={
                             "topic": row["topic"],
                             "matched_term": term,
@@ -389,17 +393,19 @@ class GraphRetriever:
             rows = neo4j_client.execute_query(
                 """
                 MATCH (c:Chunk)
-                OPTIONAL MATCH (c)-[:MENTIONS]->(e:Entity)
                 WHERE
                     toLower(c.text) CONTAINS toLower($term)
-                    OR toLower(e.name) CONTAINS toLower($term)
+                    OR EXISTS {
+                        MATCH (c)-[:MENTIONS]->(e:Entity)
+                        WHERE toLower(e.name) CONTAINS toLower($term)
+                    }
 
                 RETURN DISTINCT
                     c.id as id,
                     c.text as text
-                LIMIT 20
+                LIMIT $limit
                 """,
-                {"term": term},
+                {"term": term, "limit": self.config.keyword.limit_per_term},
             )
 
             for row in rows:
@@ -408,7 +414,7 @@ class GraphRetriever:
                         source_id=row["id"],
                         source_type=SourceType.DOCUMENT,
                         text=row["text"],
-                        score=0.70,
+                        score=self.config.keyword.score_document,
                         metadata={"matched_term": term},
                     )
                 )
@@ -420,6 +426,35 @@ class GraphRetriever:
         for group in groups:
             merged.extend(group)
         return merged
+
+    def _score_by_term_coverage(
+        self,
+        sources: list[RetrievedSource],
+        terms: list[str],
+    ) -> list[RetrievedSource]:
+        """
+        Gộp các hit keyword của cùng một source và thưởng theo số term khớp.
+
+        Trước đây dedupe chỉ giữ max score, nên source khớp 1 term chung ("quán")
+        hòa điểm với source khớp đúng term cụ thể ("size").
+        """
+        matched_terms: dict[str, set[str]] = defaultdict(set)
+        for src in sources:
+            matched_terms[src.source_id].add(src.metadata.get("matched_term", ""))
+
+        best_sources = self._deduplicate_sources(sources)
+        total_terms = max(len(terms), 1)
+
+        for src in best_sources:
+            matched = matched_terms[src.source_id]
+            coverage = min(len(matched), total_terms) / total_terms
+            src.score = src.score * (
+                self.config.keyword.coverage_base
+                + self.config.keyword.coverage_weight * coverage
+            )
+            src.metadata["matched_terms"] = sorted(matched)
+
+        return best_sources
 
     def _deduplicate_sources(self, sources: list[RetrievedSource]) -> list[RetrievedSource]:
         best_sources = {}
@@ -464,7 +499,7 @@ class GraphRetriever:
         try:
             rows = neo4j_client.execute_query(
                 """
-                CALL db.index.vector.queryNodes('menu_embedding', $top_k, $embedding)
+                CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
                 YIELD node AS m, score
                 RETURN
                     m.id AS id,
@@ -476,7 +511,7 @@ class GraphRetriever:
                     m.size AS size,
                     score
                 """,
-                {"embedding": query_embedding, "top_k": 20},
+                self._vector_params(query_embedding, "menu"),
             )
             if rows:
                 return [
@@ -517,13 +552,14 @@ class GraphRetriever:
                 m.category AS category,
                 m.size AS size,
                 m.embedding AS embedding
-            LIMIT 500
-            """
+            LIMIT $limit
+            """,
+            {"limit": self.config.vector.fallback_scan_limit},
         )
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
-            if score < 0.05:
+            if score < self.config.vector.min_cosine:
                 continue
             sources.append(
                 RetrievedSource(
@@ -551,13 +587,13 @@ class GraphRetriever:
         try:
             rows = neo4j_client.execute_query(
                 """
-                CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $embedding)
+                CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
                 YIELD node AS f, score
                 WHERE f:FAQ
                 RETURN f.id AS id, f.topic AS topic, f.question AS question,
                        f.answer AS answer, score
                 """,
-                {"embedding": query_embedding, "top_k": 20},
+                self._vector_params(query_embedding, "faq"),
             )
             if rows:
                 return [
@@ -579,13 +615,14 @@ class GraphRetriever:
             WHERE f.embedding IS NOT NULL
             RETURN f.id AS id, f.topic AS topic, f.question AS question,
                    f.answer AS answer, f.embedding AS embedding
-            LIMIT 500
-            """
+            LIMIT $limit
+            """,
+            {"limit": self.config.vector.fallback_scan_limit},
         )
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
-            if score < 0.05:
+            if score < self.config.vector.min_cosine:
                 continue
             sources.append(
                 RetrievedSource(
@@ -602,12 +639,12 @@ class GraphRetriever:
         try:
             rows = neo4j_client.execute_query(
                 """
-                CALL db.index.vector.queryNodes('chunk_embedding', $top_k, $embedding)
+                CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
                 YIELD node AS c, score
                 WHERE c:Chunk
                 RETURN c.id AS id, c.text AS text, score
                 """,
-                {"embedding": query_embedding, "top_k": 20},
+                self._vector_params(query_embedding, "chunk"),
             )
             if rows:
                 return [
@@ -628,13 +665,14 @@ class GraphRetriever:
             MATCH (c:Chunk)
             WHERE c.embedding IS NOT NULL
             RETURN c.id AS id, c.text AS text, c.embedding AS embedding
-            LIMIT 500
-            """
+            LIMIT $limit
+            """,
+            {"limit": self.config.vector.fallback_scan_limit},
         )
         sources = []
         for row in rows:
             score = self._cosine_similarity(query_embedding, row.get("embedding") or [])
-            if score < 0.05:
+            if score < self.config.vector.min_cosine:
                 continue
             sources.append(
                 RetrievedSource(
@@ -646,6 +684,13 @@ class GraphRetriever:
                 )
             )
         return sources
+
+    def _vector_params(self, query_embedding: list[float], kind: str) -> dict:
+        return {
+            "embedding": query_embedding,
+            "top_k": self.config.vector.top_k,
+            "index_name": getattr(self.config.vector.indexes, kind),
+        }
 
     def _late_fusion(
         self,
@@ -706,12 +751,7 @@ class GraphRetriever:
 
         q = query.lower()
 
-        faq_boost_rules = {
-            "wifi": ["wifi", "wi-fi", "internet", "mạng", "mat khau", "mật khẩu", "password"],
-            "opening_hours": ["giờ", "mấy giờ", "đóng cửa", "mở cửa", "open", "close"],
-            "delivery": ["ship", "giao hàng", "delivery", "mang đi", "take away"],
-            "size": ["size", "kích cỡ", "cỡ ly", "s m l"],
-        }
+        faq_boost_rules = self.lexicon.faq_boost_rules
 
         matched_topics = []
 
@@ -728,7 +768,7 @@ class GraphRetriever:
 
             for topic in matched_topics:
                 if topic in metadata_topic or topic in text:
-                    source.score += 0.35
+                    source.score += self.config.faq_domain_boost
                     source.metadata["faq_domain_boost"] = topic
 
         sources.sort(key=lambda x: x.score, reverse=True)
@@ -738,7 +778,7 @@ class GraphRetriever:
     def _expand_graph_sources(
         self,
         sources: list[RetrievedSource],
-        expansion_weight: float = 0.75,
+        expansion_weight: float,
     ) -> list[RetrievedSource]:
 
         expanded: list[RetrievedSource] = []
@@ -796,9 +836,9 @@ class GraphRetriever:
             RETURN
                 n.id AS id,
                 n.text AS text
-            LIMIT 4
+            LIMIT $limit
             """,
-            {"source_id": source.source_id},
+            {"source_id": source.source_id, "limit": self.config.expansion.neighbor_limit},
         )
 
         expanded = []
@@ -833,9 +873,9 @@ class GraphRetriever:
                 e.key AS id,
                 e.name AS name,
                 e.type AS type
-            LIMIT 10
+            LIMIT $limit
             """,
-            {"source_id": source.source_id},
+            {"source_id": source.source_id, "limit": self.config.expansion.entity_limit},
         )
 
         expanded = []
@@ -852,7 +892,7 @@ class GraphRetriever:
                     source_id=entity_id,
                     source_type=SourceType.DOCUMENT,
                     text=text,
-                    score=source.score * expansion_weight * 0.85,
+                    score=source.score * expansion_weight * self.config.expansion.entity_factor,
                     metadata={
                         "retrieval_mode": "graph_expansion",
                         "expanded_from": source.source_id,
@@ -877,9 +917,9 @@ class GraphRetriever:
                 e.key AS id,
                 e.name AS name,
                 e.type AS type
-            LIMIT 10
+            LIMIT $limit
             """,
-            {"source_id": source.source_id},
+            {"source_id": source.source_id, "limit": self.config.expansion.entity_limit},
         )
 
         expanded = []
@@ -896,7 +936,7 @@ class GraphRetriever:
                     source_id=entity_id,
                     source_type=SourceType.FAQ,
                     text=text,
-                    score=source.score * expansion_weight * 0.85,
+                    score=source.score * expansion_weight * self.config.expansion.entity_factor,
                     metadata={
                         "retrieval_mode": "graph_expansion",
                         "expanded_from": source.source_id,
@@ -926,9 +966,9 @@ class GraphRetriever:
                 other.price AS price,
                 other.category AS category,
                 other.size AS size
-            LIMIT 5
+            LIMIT $limit
             """,
-            {"source_id": source.source_id},
+            {"source_id": source.source_id, "limit": self.config.expansion.category_limit},
         )
 
         expanded = []
@@ -947,7 +987,7 @@ class GraphRetriever:
                     source_id=row["id"],
                     source_type=SourceType.MENU,
                     text=text,
-                    score=source.score * expansion_weight * 0.65,
+                    score=source.score * expansion_weight * self.config.expansion.category_factor,
                     metadata={
                         "retrieval_mode": "graph_expansion",
                         "expanded_from": source.source_id,
@@ -969,6 +1009,7 @@ class GraphRetriever:
     ) -> list[RetrievedSource]:
 
         q = query.lower()
+        rerank = self.config.lightweight_rerank
 
         for source in sources:
             text = source.text.lower()
@@ -976,24 +1017,24 @@ class GraphRetriever:
 
             lexical_overlap = self._lexical_overlap_score(q, text)
 
-            source.score += lexical_overlap * 0.15
+            source.score += lexical_overlap * rerank.lexical_overlap_weight
 
             retrieval_mode = metadata.get("retrieval_mode", "")
 
             if retrieval_mode == "graph_expansion":
-                source.score *= 0.85
+                source.score *= rerank.graph_expansion_penalty
 
             if intent == Intent.ORDER and source.source_type == SourceType.MENU:
-                source.score *= 1.10
+                source.score *= rerank.order_menu_boost
 
             if intent == Intent.FAQ and source.source_type == SourceType.FAQ:
-                source.score *= 1.10
+                source.score *= rerank.faq_faq_boost
 
             if intent == Intent.CONSULTANT and source.source_type in [
                 SourceType.MENU,
                 SourceType.DOCUMENT,
             ]:
-                source.score *= 1.05
+                source.score *= rerank.consultant_menu_document_boost
 
         sources.sort(key=lambda x: x.score, reverse=True)
 
@@ -1016,27 +1057,7 @@ class GraphRetriever:
         return len(overlap) / max(len(query_tokens), 1)
 
     def _simple_tokenize(self, text: str) -> set[str]:
-        stopwords = {
-            "là",
-            "gì",
-            "của",
-            "quán",
-            "cho",
-            "anh",
-            "chị",
-            "em",
-            "tôi",
-            "một",
-            "ly",
-            "có",
-            "không",
-            "the",
-            "a",
-            "an",
-            "is",
-            "are",
-            "what",
-        }
+        stopwords = set(self.lexicon.lexical_stopwords)
 
         cleaned = (
             text.lower()

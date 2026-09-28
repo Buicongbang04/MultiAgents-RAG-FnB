@@ -126,7 +126,11 @@ class SessionState(BaseModel):
         )
         self.touch()
 
-    def recent_history(self, window: int = 5) -> List[Message]:
+    def recent_history(self, window: Optional[int] = None) -> List[Message]:
+        if window is None:
+            from app.core.config import get_settings
+
+            window = get_settings().session.history_window
         if window <= 0:
             return []
         return self.history[-window:]

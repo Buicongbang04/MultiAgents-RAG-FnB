@@ -41,10 +41,11 @@ class RequestQueue:
     ) -> None:
         self.name = name
         self.max_concurrency = max(1, max_concurrency)
-        self.timeout_seconds = timeout_seconds or get_settings().request_timeout_seconds
+        queue_config = get_settings().queue
+        self.timeout_seconds = timeout_seconds or queue_config.request_timeout_seconds
         self.retry_config = retry_config or RetryConfig(
-            max_attempts=get_settings().retry_max_attempts,
-            base_delay_seconds=get_settings().retry_base_delay_seconds,
+            max_attempts=queue_config.retry_max_attempts,
+            base_delay_seconds=queue_config.retry_base_delay_seconds,
         )
         self._semaphore = asyncio.Semaphore(self.max_concurrency)
         self._active = 0
@@ -158,30 +159,31 @@ class QueueManager:
     """Central queues for different workloads."""
 
     def __init__(self) -> None:
-        settings = get_settings()
+        queue_config = get_settings().queue
+        concurrency = queue_config.max_concurrency
         retry_config = RetryConfig(
-            max_attempts=settings.retry_max_attempts,
-            base_delay_seconds=settings.retry_base_delay_seconds,
+            max_attempts=queue_config.retry_max_attempts,
+            base_delay_seconds=queue_config.retry_base_delay_seconds,
         )
 
         self.router = RequestQueue(
             name="router",
-            max_concurrency=settings.router_max_concurrency,
+            max_concurrency=concurrency.router,
             retry_config=retry_config,
         )
         self.generator = RequestQueue(
             name="generator",
-            max_concurrency=settings.generator_max_concurrency,
+            max_concurrency=concurrency.generator,
             retry_config=retry_config,
         )
         self.embedding = RequestQueue(
             name="embedding",
-            max_concurrency=settings.embedding_max_concurrency,
+            max_concurrency=concurrency.embedding,
             retry_config=retry_config,
         )
         self.reranker = RequestQueue(
             name="reranker",
-            max_concurrency=settings.reranker_max_concurrency,
+            max_concurrency=concurrency.reranker,
             retry_config=retry_config,
         )
 

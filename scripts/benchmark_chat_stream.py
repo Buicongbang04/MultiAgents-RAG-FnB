@@ -6,7 +6,9 @@ import time
 import urllib.request
 
 
-API_URL = "http://localhost:8001/chat/stream"
+from app.core.config import get_settings
+
+API_URL = f"{get_settings().ui.api_base_url}/chat/stream"
 
 TEST_CASES = [
     "Cho anh một ly bạc xỉu đá",

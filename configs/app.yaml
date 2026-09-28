@@ -1,0 +1,254 @@
+# =============================================================================
+# Cấu hình runtime của MultiAgents RAG FnB.
+#
+# Thứ tự ưu tiên (cao → thấp):
+#   biến môi trường  >  file .env  >  file này
+# Override một key lồng nhau bằng "__", ví dụ:
+#   LLM__BACKEND=sglang   RAG__TOP_K=8   NEO4J__PASSWORD=secret
+# Đổi file cấu hình: APP_CONFIG_DIR=/đường/dẫn/configs
+# =============================================================================
+
+app:
+  name: multiagent-rag-fnb
+  title: MultiAgent RAG FnB
+  version: 0.1.0
+  env: local                     # local | dev | staging | prod
+  log_level: INFO
+
+server:
+  host: 0.0.0.0
+  port: 8001
+  ui_port: 8501
+  neo4j_startup_retries: 3       # run.py kiểm tra Neo4j trước khi start
+  neo4j_startup_retry_delay_seconds: 2.0
+
+rate_limit:
+  max_requests: 60               # số request tối đa / IP / cửa sổ
+  window_seconds: 60
+  exempt_path_prefixes: ["/health"]
+
+health:
+  llm_timeout_seconds: 3.0
+
+# ── Session & bộ nhớ hội thoại ────────────────────────────────────────────────
+session:
+  ttl_seconds: 1800
+  history_window: 5              # số message gần nhất gửi kèm router/agent
+  context_token_limit: 4096      # = context length của generator
+  summary_trigger_ratio: 0.7     # tóm tắt khi history vượt 70% context
+  cleanup_interval_seconds: 60
+  chars_per_token: 4             # ước lượng token thô
+  summary_max_tokens: 150
+  summary_max_words: 80
+  summary_fallback_chars: 200
+  hard_trim_min_messages: 10     # khi tóm tắt lỗi: giữ max(10, window × 4)
+  hard_trim_window_multiplier: 4
+
+# ── Hội thoại nhiều lượt: xử lý câu hỏi nối tiếp (follow-up) ─────────────────
+# "Gợi ý món ít ngọt" → "lạnh": câu 2 đứng một mình không có intent, không đủ ý
+# để tìm kiếm. Resolver kế thừa intent lượt trước và dựng câu hỏi độc lập
+# (standalone query) dùng cho RAG + cache key.
+conversation:
+  followup_enabled: true
+  followup_max_words: 8          # câu dài hơn coi là câu hỏi mới
+  followup_max_turn_gap: 3       # số lượt user tối đa kể từ lượt nghiệp vụ gần nhất
+  followup_intents: [consultant, order, faq]   # intent được phép kế thừa
+  refine_intents: [consultant]  # cùng intent + câu ngắn = tinh chỉnh tiêu chí (order: câu mới thường là món mới)
+  max_query_segments: 3          # khi không có LLM: câu mở đầu chủ đề + 2 câu gần nhất
+  rewrite_with_llm: true         # chỉ khi llm.backend != mock; lỗi → ghép chuỗi
+  rewrite_max_tokens: 64
+  rewrite_temperature: 0.0
+
+# ── Trạng thái đơn / giỏ hàng (dialogue state tracking) ─────────────────────
+# Chạy TRƯỚC router: trả lời "ok"/"không"/"xem đơn"/"chốt đơn"… dựa trên điều bot
+# đang chờ (xác nhận món, "cần thêm gì không?"). Tất định, không gọi LLM/RAG.
+order_dialogue:
+  enabled: true
+  # Khách hỏi FAQ/tư vấn khi còn món chờ xác nhận:
+  #   remind → trả lời xong nhắc lại món, "ok" sau đó vẫn là xác nhận món
+  #   clear  → bỏ món đang chờ
+  pending_on_other_intents: remind
+
+# ── Hàng đợi / concurrency ────────────────────────────────────────────────────
+queue:
+  request_timeout_seconds: 60
+  retry_max_attempts: 3
+  retry_base_delay_seconds: 0.3  # backoff: 0.3 → 0.6 → 1.2s
+  max_concurrency:
+    router: 8
+    generator: 1                 # 1 để không OOM GPU 12GB
+    embedding: 2
+    reranker: 1
+
+neo4j:
+  uri: bolt://localhost:7687
+  user: neo4j
+  password: ""                   # secret → đặt trong .env: NEO4J__PASSWORD
+  database: neo4j
+
+# ── LLM generator ─────────────────────────────────────────────────────────────
+llm:
+  backend: mock                  # mock | sglang | vllm
+  base_url: http://localhost:30000/v1
+  api_key: EMPTY
+  model: Qwen/Qwen2.5-7B-Instruct-AWQ
+  temperature: 0.2
+  max_tokens: 512
+  timeout_seconds: 60
+  stream_timeout_seconds: 120
+  server:                        # tham số cho scripts/SGLang_Server.sh
+    host: 0.0.0.0
+    port: 30000
+    context_length: 4096
+    mem_fraction_static: 0.65    # chừa VRAM cho embedding + reranker
+    max_running_requests: 1
+    chunked_prefill_size: 1024
+    schedule_policy: lpm         # longest-prefix-match → tận dụng RadixAttention
+
+# ── Router ────────────────────────────────────────────────────────────────────
+# backend=hf_lora|hf_merged → model fine-tuned; ngược lại dùng LLM router nếu
+# llm.backend là sglang/vllm, không thì rule-based. Mọi nhánh đều fallback rule.
+router:
+  backend: rule_based            # rule_based | hf_lora | hf_merged
+  llm:
+    temperature: 0.0
+    max_tokens: 10
+    timeout_seconds: 8.0
+    confidence: 0.90
+  hf:
+    base_model: Qwen/Qwen2.5-0.5B-Instruct
+    adapter_dir: models/router-qwen2.5-0.5b-lora
+    merged_model_dir: models/router-qwen2.5-0.5b-merged
+    device: cuda
+    max_new_tokens: 8
+  rules:
+    base_scores:
+      order: 0.70
+      consultant: 0.65
+      faq: 0.75
+      ignore: 0.45
+    extra_match_bonus: 0.05      # +0.05 mỗi từ khoá khớp thêm
+    max_extra_bonus: 0.25
+    quantity_menu_bonus: 0.20    # "1 bạc xỉu"
+    menu_item_alone_min_score: 0.55
+    preference_question_bonus: 0.15
+    short_noise_max_chars: 8
+    short_noise_bonus: 0.25
+    order_priority_threshold: 0.70
+    no_match_score: 0.50
+    max_confidence: 0.99
+
+intent_extractor:
+  enabled: true
+  backend: rule_based            # rule_based | hf_lora | hf_merged
+  hf:
+    base_model: Qwen/Qwen2.5-0.5B-Instruct
+    adapter_dir: models/intent-extractor-qwen2.5-0.5b-lora
+    merged_model_dir: models/intent-extractor-qwen2.5-0.5b-merged
+    device: cuda
+    max_new_tokens: 128
+    confidence: 0.90
+
+# ── Embedding & reranker ──────────────────────────────────────────────────────
+embedding:
+  backend: sentence_transformers # mock | sentence_transformers
+  model: BAAI/bge-m3
+  dim: 1024
+  device: cuda
+  batch_size: 16
+
+reranker:
+  backend: bge                   # bge | null
+  model: BAAI/bge-reranker-v2-m3
+  device: cuda
+  # Điểm là xác suất sigmoid: nguồn đúng thường 0.02–0.99, câu ngoài dữ liệu ≤ 0.003.
+  threshold: 0.01
+
+# ── Graph RAG ─────────────────────────────────────────────────────────────────
+rag:
+  retrieval_mode: hybrid_graph   # keyword | vector | hybrid | hybrid_graph
+  top_k: 5
+  candidate_pool_size: 20        # "retrieve wide, rerank narrow"
+  # Order là tra tên món: reranker chấm trên truy vấn đã bỏ stopword/số ("cho 2 trà" → "trà").
+  # Cross-encoder chấm rất thấp câu có từ đệm (0.005) dù đúng món (0.41 khi làm sạch).
+  rerank_clean_query_intents: [order]
+  query:
+    max_terms: 6
+    min_token_length: 2
+  keyword:
+    limit_per_term: 20
+    score_menu_name_match: 0.95  # term nằm trong tên món
+    score_menu_other_match: 0.85
+    score_faq: 0.95
+    score_document: 0.70
+    coverage_base: 0.6           # score × (base + weight × term_khớp/tổng_term)
+    coverage_weight: 0.4
+  vector:
+    top_k: 20
+    min_cosine: 0.05             # chỉ dùng cho fallback cosine bằng Python
+    fallback_scan_limit: 500
+    indexes:
+      menu: menu_embedding
+      faq: faq_embedding
+      chunk: chunk_embedding
+  fusion:
+    default:                     # order / consultant: tin keyword (tên món)
+      keyword_weight: 0.65
+      vector_weight: 0.35
+    faq:                         # FAQ diễn đạt đa dạng: tin ngữ nghĩa
+      keyword_weight: 0.45
+      vector_weight: 0.55
+  faq_domain_boost: 0.35
+  expansion:
+    weight: 0.75
+    entity_factor: 0.85          # MENTIONS
+    category_factor: 0.65        # BELONGS_TO (món cùng danh mục)
+    neighbor_limit: 4            # NEXT (chunk trước/sau)
+    entity_limit: 10
+    category_limit: 5
+  lightweight_rerank:
+    lexical_overlap_weight: 0.15
+    graph_expansion_penalty: 0.85
+    order_menu_boost: 1.10
+    faq_faq_boost: 1.10
+    consultant_menu_document_boost: 1.05
+  context:
+    consultant_max_menu_items: 5
+    consultant_max_supporting: 3
+    consultant_fallback_items: 3
+    faq_max_items: 5
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+cache:
+  enabled: true
+  cacheable_intents: [faq, consultant, ignore]
+  skip_intents: [order]          # order phụ thuộc trạng thái → không cache
+  exact:
+    enabled: true
+    ttl_seconds: 1800
+    max_size: 1000
+  semantic:
+    enabled: true
+    ttl_seconds: 1800
+    max_size: 1000
+    default_threshold: 0.92
+    thresholds:
+      faq: 0.92
+      consultant: 0.92
+      ignore: 0.95
+
+streaming:
+  clause_min_chars: 12
+
+# ── Client: Chainlit UI + scripts warmup/benchmark ────────────────────────────
+ui:
+  api_base_url: http://localhost:8001
+  request_timeout_seconds: 90
+  long_word_chars: 8
+  typing_delay_seconds:
+    newline: 0.06
+    punctuation: 0.08
+    bullet: 0.05
+    long_word: 0.035
+    word: 0.025
+    first_word: 0.01

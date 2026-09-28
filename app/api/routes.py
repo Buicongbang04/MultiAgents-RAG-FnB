@@ -34,10 +34,10 @@ async def health_check():
 
     # SGLang / vLLM health
     llm_status = "skipped"
-    if settings.llm_backend in {"sglang", "vllm"}:
+    if settings.llm.backend in {"sglang", "vllm"}:
         try:
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                resp = await client.get(f"{settings.llm_base_url}/models")
+            async with httpx.AsyncClient(timeout=settings.health.llm_timeout_seconds) as client:
+                resp = await client.get(f"{settings.llm.base_url}/models")
             llm_status = "ok" if resp.status_code == 200 else f"http_{resp.status_code}"
         except Exception as exc:
             llm_status = f"error: {exc}"

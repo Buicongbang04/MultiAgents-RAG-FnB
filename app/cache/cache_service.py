@@ -11,37 +11,26 @@ from app.cache.paraphrase import build_cache_hit_answer
 
 class CacheService:
     def __init__(self):
-        settings = get_settings()
+        config = get_settings().cache
 
-        self.enabled = getattr(settings, "cache_enabled", True)
-        self.exact_enabled = getattr(settings, "exact_cache_enabled", True)
-        self.semantic_enabled = getattr(settings, "semantic_cache_enabled", True)
+        self.enabled = config.enabled
+        self.exact_enabled = config.exact.enabled
+        self.semantic_enabled = config.semantic.enabled
 
-        self.cacheable_intents: Set[str] = self._parse_csv_setting(
-            getattr(settings, "cacheable_intents", "faq,consultant,ignore")
-        )
-        self.skip_intents: Set[str] = self._parse_csv_setting(
-            getattr(settings, "cache_skip_intents", "order")
-        )
+        self.cacheable_intents: Set[str] = set(config.cacheable_intents)
+        self.skip_intents: Set[str] = set(config.skip_intents)
 
         self.exact_cache = ExactInMemoryCache(
-            ttl_seconds=getattr(settings, "exact_cache_ttl_seconds", 1800),
-            max_size=getattr(settings, "exact_cache_max_size", 1000),
+            ttl_seconds=config.exact.ttl_seconds,
+            max_size=config.exact.max_size,
         )
 
         self.semantic_cache = SemanticInMemoryCache(
-            ttl_seconds=getattr(settings, "semantic_cache_ttl_seconds", 1800),
-            max_size=getattr(settings, "semantic_cache_max_size", 1000),
-            thresholds={
-                "faq": getattr(settings, "semantic_cache_faq_threshold", 0.95),
-                "consultant": getattr(settings, "semantic_cache_consultant_threshold", 0.94),
-                "ignore": getattr(settings, "semantic_cache_ignore_threshold", 0.97),
-            },
+            ttl_seconds=config.semantic.ttl_seconds,
+            max_size=config.semantic.max_size,
+            thresholds=config.semantic.thresholds,
+            default_threshold=config.semantic.default_threshold,
         )
-
-    @staticmethod
-    def _parse_csv_setting(value: str) -> Set[str]:
-        return {item.strip() for item in value.split(",") if item.strip()}
 
     def is_cacheable_intent(self, intent: Intent) -> bool:
         if not self.enabled:

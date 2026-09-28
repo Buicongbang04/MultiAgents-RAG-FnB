@@ -35,12 +35,13 @@ class HFIntentExtractor(BaseIntentExtractor):
         self.settings = get_settings()
         self.fallback = RuleBasedIntentExtractor()
 
-        self.backend = self.settings.intent_extractor_backend
-        self.base_model = self.settings.intent_extractor_base_model
-        self.adapter_dir = self.settings.intent_extractor_adapter_dir
-        self.merged_model_dir = self.settings.intent_extractor_merged_model_dir
-        self.device = self.settings.intent_extractor_device
-        self.max_new_tokens = self.settings.intent_extractor_max_new_tokens
+        self.config = self.settings.intent_extractor.hf
+        self.backend = self.settings.intent_extractor.backend
+        self.base_model = self.config.base_model
+        self.adapter_dir = self.config.adapter_dir
+        self.merged_model_dir = self.config.merged_model_dir
+        self.device = self.config.device
+        self.max_new_tokens = self.config.max_new_tokens
 
         if self.backend == "hf_merged":
             model_path = self.merged_model_dir
@@ -176,7 +177,7 @@ class HFIntentExtractor(BaseIntentExtractor):
                 cache_key=str(obj.get("cache_key", "") or "").strip(),
                 intent=router_intent,
                 language=predicted_language,
-                confidence=0.90,
+                confidence=self.config.confidence,
                 metadata={
                     "extractor_backend": self.backend,
                     "base_model": self.base_model,

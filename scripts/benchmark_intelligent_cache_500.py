@@ -9,7 +9,9 @@ from typing import Any, Dict, List, Tuple
 
 import requests
 
-BASE_URL = "http://localhost:8001"
+from app.core.config import get_settings
+
+BASE_URL = get_settings().ui.api_base_url
 CHAT_URL = f"{BASE_URL}/chat"
 CACHE_CLEAR_URL = f"{BASE_URL}/debug/cache/clear"
 

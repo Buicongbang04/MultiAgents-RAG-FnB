@@ -7,7 +7,7 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from app.core.config import get_settings
+from app.core.config import get_lexicon, get_settings
 from app.core.constants import Intent, Language
 from app.core.logging import get_logger
 from app.core.schemas import RouterInput, RouterOutput
@@ -59,18 +59,7 @@ def parse_intent(raw_text: str) -> Intent | None:
 
 def detect_language_simple(text: str) -> Language:
     lowered = text.lower()
-
-    vi_markers = [
-        "à", "á", "ạ", "ả", "ã",
-        "ă", "ắ", "ằ", "ẳ", "ẵ", "ặ",
-        "â", "ấ", "ầ", "ẩ", "ẫ", "ậ",
-        "đ",
-        "ê", "ế", "ề", "ể", "ễ", "ệ",
-        "ô", "ố", "ồ", "ổ", "ỗ", "ộ",
-        "ơ", "ớ", "ờ", "ở", "ỡ", "ợ",
-        "ư", "ứ", "ừ", "ử", "ữ", "ự",
-        "quán", "món", "cho", "anh", "chị", "em", "mình",
-    ]
+    vi_markers = get_lexicon().language.hf_router_vi_markers
 
     if any(marker in lowered for marker in vi_markers):
         return Language.VI
@@ -81,17 +70,18 @@ def detect_language_simple(text: str) -> Language:
 class HFRouter:
     def __init__(self, merged: bool = False) -> None:
         self.settings = get_settings()
+        self.config = self.settings.router.hf
         self.merged = merged
 
         if merged:
-            model_path = self.settings.router_merged_model_dir
+            model_path = self.config.merged_model_dir
             logger.info("Loading HF merged router model=%s", model_path)
         else:
-            model_path = self.settings.router_base_model
+            model_path = self.config.base_model
             logger.info(
                 "Loading HF LoRA router base_model=%s adapter=%s",
-                self.settings.router_base_model,
-                self.settings.router_adapter_dir,
+                self.config.base_model,
+                self.config.adapter_dir,
             )
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -102,12 +92,12 @@ class HFRouter:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        dtype = torch.float16 if self.settings.router_device == "cuda" else torch.float32
+        dtype = torch.float16 if self.config.device == "cuda" else torch.float32
 
         base_model = AutoModelForCausalLM.from_pretrained(
             model_path,
             dtype=dtype,
-            device_map="auto" if self.settings.router_device == "cuda" else None,
+            device_map="auto" if self.config.device == "cuda" else None,
             trust_remote_code=True,
         )
 
@@ -116,10 +106,10 @@ class HFRouter:
         else:
             self.model = PeftModel.from_pretrained(
                 base_model,
-                self.settings.router_adapter_dir,
+                self.config.adapter_dir,
             )
 
-        if self.settings.router_device == "cpu":
+        if self.config.device == "cpu":
             self.model.to("cpu")
 
         self.model.eval()
@@ -160,7 +150,7 @@ class HFRouter:
         with torch.no_grad():
             output_ids = self.model.generate(
                 **inputs,
-                max_new_tokens=self.settings.router_max_new_tokens,
+                max_new_tokens=self.config.max_new_tokens,
                 do_sample=False,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
@@ -189,10 +179,10 @@ class HFRouter:
             raw_output=raw_output,
             metadata={
                 "router_type": router_type,
-                "base_model": self.settings.router_base_model,
-                "adapter_dir": None if self.merged else self.settings.router_adapter_dir,
+                "base_model": self.config.base_model,
+                "adapter_dir": None if self.merged else self.config.adapter_dir,
                 "merged_model_dir": (
-                    self.settings.router_merged_model_dir if self.merged else None
+                    self.config.merged_model_dir if self.merged else None
                 ),
                 "latency_ms": latency_ms,
                 "required_json": {"action": intent.value},

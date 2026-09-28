@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import torch
@@ -8,20 +7,13 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-BASE_MODEL = os.getenv(
-    "ROUTER_BASE_MODEL",
-    "Qwen/Qwen2.5-0.5B-Instruct",
-)
+from app.core.config import get_settings, get_training_config
 
-ADAPTER_DIR = os.getenv(
-    "ROUTER_ADAPTER_DIR",
-    "models/router-qwen2.5-0.5b-lora",
-)
-
-OUTPUT_DIR = os.getenv(
-    "ROUTER_MERGED_MODEL_DIR",
-    "models/router-qwen2.5-0.5b-merged",
-)
+HF_CONFIG = get_settings().router.hf
+MERGE_CONFIG = get_training_config().merge
+BASE_MODEL = HF_CONFIG.base_model
+ADAPTER_DIR = HF_CONFIG.adapter_dir
+OUTPUT_DIR = HF_CONFIG.merged_model_dir
 
 
 def main() -> None:
@@ -45,8 +37,8 @@ def main() -> None:
 
     base_model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL,
-        dtype=torch.float16,
-        device_map="auto",
+        dtype=getattr(torch, MERGE_CONFIG.dtype),
+        device_map=MERGE_CONFIG.device_map,
         trust_remote_code=True,
     )
 

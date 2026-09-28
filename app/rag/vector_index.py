@@ -47,7 +47,7 @@ async def embed_menu_items() -> int:
             {
                 "id": row["id"],
                 "embedding": embedding,
-                "embedding_model": get_settings().embedding_model,
+                "embedding_model": get_settings().embedding.model,
             },
         )
 
@@ -92,7 +92,7 @@ async def embed_faq_items() -> int:
             {
                 "id": row["id"],
                 "embedding": embedding,
-                "embedding_model": get_settings().embedding_model,
+                "embedding_model": get_settings().embedding.model,
             },
         )
 
@@ -127,7 +127,7 @@ async def embed_chunk_items() -> int:
             {
                 "id": row["id"],
                 "embedding": embedding,
-                "embedding_model": get_settings().embedding_model,
+                "embedding_model": get_settings().embedding.model,
             },
         )
 

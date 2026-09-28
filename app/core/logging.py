@@ -8,7 +8,7 @@ def setup_logging() -> None:
     """Configure simple structured-ish console logging for MVP."""
 
     settings = get_settings()
-    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    level = getattr(logging, settings.app.log_level.upper(), logging.INFO)
 
     logging.basicConfig(
         level=level,

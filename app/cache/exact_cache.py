@@ -29,7 +29,7 @@ class ExactCacheEntry:
 
 
 class ExactInMemoryCache:
-    def __init__(self, ttl_seconds: int = 1800, max_size: int = 1000):
+    def __init__(self, ttl_seconds: int, max_size: int):
         self.ttl_seconds = ttl_seconds
         self.max_size = max_size
         self._store: OrderedDict[str, ExactCacheEntry] = OrderedDict()

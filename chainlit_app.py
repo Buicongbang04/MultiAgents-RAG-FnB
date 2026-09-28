@@ -17,7 +17,11 @@ from typing import Any, Dict, Tuple
 import chainlit as cl
 import httpx
 
-API_BASE_URL = os.getenv("CHAINLIT_API_BASE_URL", "http://localhost:8001")
+from app.core.config import get_settings
+
+UI_CONFIG = get_settings().ui
+# run.py truyền CHAINLIT_API_BASE_URL khi backend chạy ở port khác config.
+API_BASE_URL = os.getenv("CHAINLIT_API_BASE_URL", UI_CONFIG.api_base_url)
 CHAT_URL = f"{API_BASE_URL}/chat"
 
 # ── Intent config ────────────────────────────────────────────────────────────
@@ -50,7 +54,7 @@ Bạn có thể hỏi tôi về:
 
 async def fetch_chat(user_text: str, session_id: str) -> Dict[str, Any]:
     payload = {"text": user_text, "session_id": session_id}
-    async with httpx.AsyncClient(timeout=90.0) as client:
+    async with httpx.AsyncClient(timeout=UI_CONFIG.request_timeout_seconds) as client:
         resp = await client.post(CHAT_URL, json=payload)
         resp.raise_for_status()
         return resp.json()
@@ -95,6 +99,7 @@ def parse_response(data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         "cache_hit": cache_hit,
         "cache_type": cache_type,
         "cache_key": str(extraction.get("cache_key", "")),
+        "conversation": raw_meta.get("conversation") or {},
     }
     return answer, meta
 
@@ -112,12 +117,13 @@ async def animate(msg: cl.Message, text: str) -> None:
     # Split theo dòng để giữ đúng markdown newlines
     lines = text.split("\n")
     first_token = True
+    delays = UI_CONFIG.typing_delay_seconds
 
     for line_idx, line in enumerate(lines):
         if line_idx > 0:
             # Emit newline character
             await msg.stream_token("\n")
-            await asyncio.sleep(0.06)
+            await asyncio.sleep(delays.newline)
 
         words = line.split(" ")
         for w_idx, word in enumerate(words):
@@ -131,16 +137,16 @@ async def animate(msg: cl.Message, text: str) -> None:
 
             # Tốc độ adaptive
             if any(word.endswith(p) for p in (".", "!", "?", ":", "—")):
-                delay = 0.08      # dừng sau dấu câu
+                delay = delays.punctuation   # dừng sau dấu câu
             elif word.startswith(("•", "-", "*", "**")):
-                delay = 0.05      # đầu bullet
-            elif len(word) > 8:
-                delay = 0.035     # từ dài
+                delay = delays.bullet        # đầu bullet
+            elif len(word) > UI_CONFIG.long_word_chars:
+                delay = delays.long_word     # từ dài
             else:
-                delay = 0.025     # từ thường
+                delay = delays.word          # từ thường
 
             if first_token:
-                delay = 0.01      # từ đầu tiên xuất hiện nhanh
+                delay = delays.first_word    # từ đầu tiên xuất hiện nhanh
                 first_token = False
 
             await asyncio.sleep(delay)
@@ -158,9 +164,14 @@ def build_footer(meta: Dict[str, Any], session_id: str) -> str:
         ct = meta.get("cache_type", "").capitalize() or "Cache"
         cache_part = f" · ⚡ {ct} hit"
 
+    followup_part = ""
+    conversation = meta.get("conversation") or {}
+    if conversation.get("is_followup"):
+        followup_part = f"  ·  ↪ *{conversation.get('standalone_query', '')}*"
+
     return (
         f"\n\n---\n"
-        f"{info['emoji']} **{info['label']}**{cache_part}"
+        f"{info['emoji']} **{info['label']}**{cache_part}{followup_part}"
         f"  ·  `{latency:.0f} ms`"
         f"  ·  `{session_id}`"
     )

@@ -1,0 +1,89 @@
+# =============================================================================
+# Siêu tham số fine-tune (QLoRA) cho Router và Intent Extractor.
+#
+# Đường dẫn model (base_model, adapter_dir, merged_model_dir) KHÔNG khai báo ở
+# đây — lấy từ app.yaml (router.hf.*, intent_extractor.hf.*) để train, merge và
+# serving luôn dùng cùng một chỗ.
+#
+# training_args được truyền nguyên vào transformers.TrainingArguments(**...).
+# =============================================================================
+
+router_sft:
+  train_path: data/router/sft/train.jsonl
+  val_path: data/router/sft/val.jsonl
+  test_path: data/router/sft/test_with_meta.jsonl
+  max_length: 192
+  use_4bit: true
+  quantization:
+    bnb_4bit_quant_type: nf4
+    bnb_4bit_compute_dtype: float16
+    bnb_4bit_use_double_quant: true
+  lora:
+    r: 16
+    lora_alpha: 32
+    lora_dropout: 0.05
+    bias: none
+    task_type: CAUSAL_LM
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  training_args:
+    num_train_epochs: 5
+    per_device_train_batch_size: 4
+    per_device_eval_batch_size: 4
+    gradient_accumulation_steps: 4
+    learning_rate: 2.0e-4
+    warmup_ratio: 0.05
+    logging_steps: 10
+    eval_strategy: epoch
+    save_strategy: epoch
+    save_total_limit: 2
+    load_best_model_at_end: true
+    metric_for_best_model: eval_loss
+    greater_is_better: false
+    fp16: true
+    bf16: false
+    report_to: none
+    remove_unused_columns: false
+
+intent_extractor_sft:
+  train_path: data/intent_extraction/sft/train.jsonl
+  val_path: data/intent_extraction/sft/val.jsonl
+  test_path: data/intent_extraction/sft/test_with_meta.jsonl
+  max_length: 512
+  use_4bit: true
+  quantization:
+    bnb_4bit_quant_type: nf4
+    bnb_4bit_compute_dtype: float16
+    bnb_4bit_use_double_quant: true
+  lora:
+    r: 16
+    lora_alpha: 32
+    lora_dropout: 0.05
+    bias: none
+    task_type: CAUSAL_LM
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  training_args:
+    num_train_epochs: 5
+    per_device_train_batch_size: 2
+    per_device_eval_batch_size: 2
+    gradient_accumulation_steps: 8
+    learning_rate: 2.0e-4
+    warmup_ratio: 0.05
+    lr_scheduler_type: cosine
+    logging_steps: 10
+    eval_strategy: steps
+    eval_steps: 50
+    save_strategy: steps
+    save_steps: 50
+    save_total_limit: 2
+    load_best_model_at_end: true
+    metric_for_best_model: eval_loss
+    greater_is_better: false
+    fp16: true
+    optim: paged_adamw_8bit
+    report_to: none
+    remove_unused_columns: false
+    gradient_checkpointing: true
+
+merge:
+  dtype: float16
+  device_map: auto

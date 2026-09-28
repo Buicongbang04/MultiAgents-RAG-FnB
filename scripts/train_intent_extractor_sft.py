@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Dict, List
 
@@ -16,18 +15,18 @@ from transformers import (
     TrainingArguments,
 )
 
-BASE_MODEL = os.getenv("INTENT_EXTRACTOR_BASE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+from app.core.config import get_settings, get_training_config
+from scripts.train_router_sft import build_bnb_config
 
-DATA_DIR = Path("data/intent_extraction/sft")
-TRAIN_FILE = str(DATA_DIR / "train.jsonl")
-VAL_FILE = str(DATA_DIR / "val.jsonl")
+# Model/đường dẫn: configs/app.yaml (intent_extractor.hf) — siêu tham số: configs/training.yaml
+CONFIG = get_training_config().intent_extractor_sft
+BASE_MODEL = get_settings().intent_extractor.hf.base_model
+OUTPUT_DIR = get_settings().intent_extractor.hf.adapter_dir
 
-OUTPUT_DIR = os.getenv(
-    "INTENT_EXTRACTOR_ADAPTER_DIR",
-    "models/intent-extractor-qwen2.5-0.5b-lora",
-)
+TRAIN_FILE = CONFIG.train_path
+VAL_FILE = CONFIG.val_path
 
-MAX_SEQ_LENGTH = 512
+MAX_SEQ_LENGTH = CONFIG.max_length
 
 
 def build_text(tokenizer, messages: List[Dict[str, str]]) -> str:
@@ -78,12 +77,7 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-    )
+    bnb_config = build_bnb_config(CONFIG.quantization) if CONFIG.use_4bit else None
 
     model = AutoModelForCausalLM.from_pretrained(
         BASE_MODEL,
@@ -93,24 +87,10 @@ def main() -> None:
     )
 
     model.config.use_cache = False
-    model = prepare_model_for_kbit_training(model)
+    if CONFIG.use_4bit:
+        model = prepare_model_for_kbit_training(model)
 
-    lora_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM",
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
-        ],
-    )
+    lora_config = LoraConfig(**CONFIG.lora)
 
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
@@ -129,30 +109,7 @@ def main() -> None:
         return_tensors="pt",
     )
 
-    training_args = TrainingArguments(
-        output_dir=OUTPUT_DIR,
-        num_train_epochs=5,
-        per_device_train_batch_size=2,
-        per_device_eval_batch_size=2,
-        gradient_accumulation_steps=8,
-        learning_rate=2e-4,
-        warmup_ratio=0.05,
-        lr_scheduler_type="cosine",
-        logging_steps=10,
-        eval_strategy="steps",
-        eval_steps=50,
-        save_strategy="steps",
-        save_steps=50,
-        save_total_limit=2,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False,
-        fp16=True,
-        optim="paged_adamw_8bit",
-        report_to="none",
-        remove_unused_columns=False,
-        gradient_checkpointing=True,
-    )
+    training_args = TrainingArguments(output_dir=OUTPUT_DIR, **CONFIG.training_args)
 
     trainer = Trainer(
         model=model,

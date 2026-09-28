@@ -9,7 +9,7 @@ from app.llm.sglang import SGLangClient
 @lru_cache(maxsize=1)
 def get_llm_client() -> BaseLLMClient:
     settings = get_settings()
-    backend = settings.llm_backend.lower()
+    backend = settings.llm.backend.lower()
 
     if backend == "mock":
         return MockLLMClient()

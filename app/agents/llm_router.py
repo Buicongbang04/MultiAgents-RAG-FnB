@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 import httpx
 
+from app.core.config import get_lexicon
 from app.core.constants import Intent, Language
 from app.core.logging import get_logger
 from app.core.schemas import RouterInput, RouterOutput
@@ -50,9 +51,10 @@ class LLMIntentRouter:
     def __init__(self) -> None:
         from app.core.config import get_settings
         self.settings = get_settings()
-        self.base_url = self.settings.llm_base_url.rstrip("/")
-        self.model = self.settings.generator_model
-        self.api_key = self.settings.llm_api_key
+        self.config = self.settings.router.llm
+        self.base_url = self.settings.llm.base_url.rstrip("/")
+        self.model = self.settings.llm.model
+        self.api_key = self.settings.llm.api_key
 
     async def classify(self, router_input: RouterInput) -> RouterOutput:
         started = time.perf_counter()
@@ -73,7 +75,7 @@ class LLMIntentRouter:
 
         return RouterOutput(
             action=intent,
-            confidence=0.90,
+            confidence=self.config.confidence,
             language=language,
             raw_output=None,
             metadata={
@@ -91,13 +93,13 @@ class LLMIntentRouter:
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text},
             ],
-            "temperature": 0.0,
-            "max_tokens": 10,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
             "stream": False,
         }
 
         try:
-            async with httpx.AsyncClient(timeout=8.0) as client:
+            async with httpx.AsyncClient(timeout=self.config.timeout_seconds) as client:
                 resp = await client.post(
                     f"{self.base_url}/chat/completions",
                     json=payload,
@@ -144,10 +146,11 @@ class LLMIntentRouter:
 
 
 def _detect_language(text: str) -> Language:
-    vi_chars = "àáâãèéêìíòóôõùúýăđơưạảấầẩẫậắặẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵ"
-    if any(c in text.lower() for c in vi_chars):
+    lexicon = get_lexicon().language
+    lowered = text.lower()
+    if re.search(lexicon.vi_diacritics_pattern, lowered):
         return Language.VI
-    if re.search(r"\b(hello|hi|order|coffee|tea|recommend|what|which|where)\b", text.lower()):
+    if re.search(lexicon.english_word_pattern, lowered):
         return Language.EN
     return Language.UNKNOWN
 

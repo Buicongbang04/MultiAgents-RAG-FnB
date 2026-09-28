@@ -14,8 +14,8 @@ def _utc_now() -> datetime:
 
 
 def _estimate_tokens(text: str) -> int:
-    """Rough token estimate: ~4 chars per token."""
-    return max(1, len(text) // 4)
+    """Rough token estimate: ~chars_per_token ký tự / token."""
+    return max(1, len(text) // get_settings().session.chars_per_token)
 
 
 def _history_token_count(history: List[Message]) -> int:
@@ -113,14 +113,15 @@ class SessionStore:
         - Tóm tắt nửa đầu bằng LLM (gọi async, không block)
         - Giữ lại 5 turn gần nhất + summary
         """
-        token_limit = self.settings.session_context_token_limit
-        trigger_ratio = self.settings.session_summary_trigger_ratio
+        config = self.settings.session
+        token_limit = config.context_token_limit
+        trigger_ratio = config.summary_trigger_ratio
         threshold = int(token_limit * trigger_ratio)
 
         if _history_token_count(session.history) < threshold:
             return
 
-        window = self.settings.session_history_window
+        window = config.history_window
         keep = session.history[-window:]
         to_summarize = session.history[:-window]
 
@@ -141,7 +142,10 @@ class SessionStore:
             logger.info("Summary done session=%s new_length=%d", session.session_id, len(keep))
         except Exception as exc:
             logger.warning("Summarization failed session=%s error=%s", session.session_id, exc)
-            max_messages = max(10, window * 4)
+            max_messages = max(
+                config.hard_trim_min_messages,
+                window * config.hard_trim_window_multiplier,
+            )
             if len(session.history) > max_messages:
                 session.history = session.history[-max_messages:]
 
@@ -162,26 +166,27 @@ class SessionStore:
         if existing_summary:
             prefix = f"[Tóm tắt trước đó]: {existing_summary}\n\n"
 
+        config = self.settings.session
         llm = get_llm_client()
         response = await llm.generate(
             LLMGenerateRequest(
                 system_prompt=(
                     "Bạn là trợ lý tóm tắt hội thoại. "
-                    "Tóm tắt ngắn gọn (≤80 từ) nội dung chính của đoạn hội thoại dưới đây, "
+                    f"Tóm tắt ngắn gọn (≤{config.summary_max_words} từ) nội dung chính của đoạn hội thoại dưới đây, "
                     "giữ lại các thông tin quan trọng như món đã đặt, yêu cầu đặc biệt, "
                     "thông tin FAQ đã được trả lời."
                 ),
                 user_prompt=(
                     f"{prefix}[Đoạn hội thoại cần tóm tắt]:\n{history_text}"
                 ),
-                max_tokens=150,
-                metadata={"fallback_answer": history_text[:200]},
+                max_tokens=config.summary_max_tokens,
+                metadata={"fallback_answer": history_text[: config.summary_fallback_chars]},
             )
         )
         return response.text.strip()
 
     async def _cleanup_loop(self) -> None:
-        interval = self.settings.session_cleanup_interval_seconds
+        interval = self.settings.session.cleanup_interval_seconds
         while not self._closed:
             await asyncio.sleep(interval)
             try:
@@ -192,7 +197,7 @@ class SessionStore:
                 logger.exception("Session cleanup failed")
 
     async def cleanup_expired(self) -> int:
-        ttl = self.settings.session_ttl_seconds
+        ttl = self.settings.session.ttl_seconds
         now = _utc_now()
         removed = 0
         async with self._lock:

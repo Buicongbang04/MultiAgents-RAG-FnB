@@ -3,8 +3,8 @@
 Entry point duy nhất để khởi động dự án.
 
 Cách dùng:
-    python run.py                    # Backend only, port 8001
-    python run.py --with-ui          # Backend + Chainlit UI (port 8501)
+    python run.py                    # Backend only (port: server.port trong configs/app.yaml)
+    python run.py --with-ui          # Backend + Chainlit UI (port: server.ui_port)
     python run.py --port 8002        # Đổi port backend
     python run.py --reload           # Hot-reload (dev mode)
     python run.py --with-ui --ui-port 8080
@@ -16,14 +16,17 @@ import sys
 import time
 import os
 
+from app.core.config import get_settings
+
 
 def parse_args():
+    server = get_settings().server
     parser = argparse.ArgumentParser(description="MultiAgents RAG FnB — startup")
-    parser.add_argument("--host", default="0.0.0.0", help="Backend host (default: 0.0.0.0)")
-    parser.add_argument("--port", type=int, default=8001, help="Backend port (default: 8001)")
+    parser.add_argument("--host", default=server.host, help=f"Backend host (default: {server.host})")
+    parser.add_argument("--port", type=int, default=server.port, help=f"Backend port (default: {server.port})")
     parser.add_argument("--reload", action="store_true", help="Enable hot-reload (dev)")
     parser.add_argument("--with-ui", action="store_true", help="Also start Chainlit UI")
-    parser.add_argument("--ui-port", type=int, default=8501, help="Chainlit port (default: 8501)")
+    parser.add_argument("--ui-port", type=int, default=server.ui_port, help=f"Chainlit port (default: {server.ui_port})")
     return parser.parse_args()
 
 
@@ -51,16 +54,17 @@ def free_port(port: int) -> None:
         print(f"[WARN] Could not free port {port}: {exc}")
 
 
-def check_neo4j(max_retries: int = 3, delay: float = 2.0) -> bool:
+def check_neo4j() -> bool:
     """Kiểm tra Neo4j có sẵn sàng không trước khi start."""
     try:
-        from dotenv import load_dotenv
-        load_dotenv()
         from neo4j import GraphDatabase
 
-        uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        user = os.getenv("NEO4J_USER", "neo4j")
-        password = os.getenv("NEO4J_PASSWORD", "password")
+        settings = get_settings()
+        uri = settings.neo4j.uri
+        user = settings.neo4j.user
+        password = settings.neo4j.password
+        max_retries = settings.server.neo4j_startup_retries
+        delay = settings.server.neo4j_startup_retry_delay_seconds
 
         for attempt in range(1, max_retries + 1):
             try:

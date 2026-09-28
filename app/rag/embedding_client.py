@@ -15,7 +15,7 @@ class BaseEmbeddingClient:
         return [await self.embed_text(text) for text in texts]
 
 class MockEmbeddingClient(BaseEmbeddingClient):
-    def __init__(self, dim: int = 384) -> None:
+    def __init__(self, dim: int) -> None:
         self.dim = dim
 
     async def embed_text(self, text: str) -> list[float]:
@@ -40,8 +40,8 @@ class SentenceTransformersEmbeddingClient(BaseEmbeddingClient):
     def __init__(
         self,
         model_name: str,
-        device: str = "cuda",
-        batch_size: int = 16,
+        device: str,
+        batch_size: int,
     ) -> None:
         from sentence_transformers import SentenceTransformer
 
@@ -85,18 +85,16 @@ class SentenceTransformersEmbeddingClient(BaseEmbeddingClient):
 def get_embedding_client() -> BaseEmbeddingClient:
     settings = get_settings()
 
-    backend = getattr(settings, "embedding_backend", "mock")
+    config = settings.embedding
 
-    if backend == "mock":
-        return MockEmbeddingClient(
-            dim=getattr(settings, "embedding_dim", 384),
-        )
+    if config.backend == "mock":
+        return MockEmbeddingClient(dim=config.dim)
 
-    if backend == "sentence_transformers":
+    if config.backend == "sentence_transformers":
         return SentenceTransformersEmbeddingClient(
-            model_name=getattr(settings, "embedding_model", "BAAI/bge-m3"),
-            device=getattr(settings, "embedding_device", "cuda"),
-            batch_size=getattr(settings, "embedding_batch_size", 16),
+            model_name=config.model,
+            device=config.device,
+            batch_size=config.batch_size,
         )
 
-    raise ValueError(f"Unsupported embedding backend: {backend}")
+    raise ValueError(f"Unsupported embedding backend: {config.backend}")

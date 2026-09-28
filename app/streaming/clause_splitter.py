@@ -35,7 +35,7 @@ class ClauseSplitter:
             clause = self.buffer[:end_idx].strip()
             self.buffer = self.buffer[end_idx:].lstrip()
 
-            if len(clause) >= self.settings.clause_min_chars:
+            if len(clause) >= self.settings.streaming.clause_min_chars:
                 clauses.append(clause)
 
         return clauses

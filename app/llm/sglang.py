@@ -13,15 +13,22 @@ class SGLangClient(BaseLLMClient):
     def __init__(self) -> None:
         from app.core.config import get_settings
         self.settings = get_settings()
-        self.model = self.settings.generator_model
-        self.base_url = self.settings.llm_base_url.rstrip("/")
-        self.api_key = self.settings.llm_api_key
+        self.model = self.settings.llm.model
+        self.base_url = self.settings.llm.base_url.rstrip("/")
+        self.api_key = self.settings.llm.api_key
 
     def _build_messages(self, request: LLMGenerateRequest) -> List[Dict[str, str]]:
         messages: List[Dict[str, str]] = []
 
-        if request.system_prompt:
-            messages.append({"role": "system", "content": request.system_prompt})
+        system_prompt = request.system_prompt
+        if request.summary:
+            system_prompt = (
+                f"{system_prompt}\n\n"
+                f"TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ:\n{request.summary}"
+            ).strip()
+
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
 
         for msg in request.history:
             if msg.role in {"user", "assistant", "system"} and msg.content.strip():
@@ -70,7 +77,7 @@ class SGLangClient(BaseLLMClient):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=self.settings.llm.timeout_seconds) as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
                     json=payload,
@@ -123,7 +130,7 @@ class SGLangClient(BaseLLMClient):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
+            async with httpx.AsyncClient(timeout=self.settings.llm.stream_timeout_seconds) as client:
                 async with client.stream(
                     "POST",
                     f"{self.base_url}/chat/completions",

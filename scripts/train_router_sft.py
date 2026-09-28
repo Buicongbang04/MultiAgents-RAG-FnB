@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import torch
@@ -17,22 +16,18 @@ from transformers import (
 
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
+from app.core.config import get_settings, get_training_config
 
-MODEL_NAME = os.getenv(
-    "ROUTER_BASE_MODEL",
-    "Qwen/Qwen2.5-0.5B-Instruct",
-)
+# Model/đường dẫn: configs/app.yaml (router.hf) — siêu tham số: configs/training.yaml
+CONFIG = get_training_config().router_sft
+MODEL_NAME = get_settings().router.hf.base_model
+OUTPUT_DIR = get_settings().router.hf.adapter_dir
 
-TRAIN_PATH = Path("data/router/sft/train.jsonl")
-VAL_PATH = Path("data/router/sft/val.jsonl")
+TRAIN_PATH = Path(CONFIG.train_path)
+VAL_PATH = Path(CONFIG.val_path)
 
-OUTPUT_DIR = os.getenv(
-    "ROUTER_SFT_OUTPUT_DIR",
-    "models/router-qwen2.5-0.5b-lora",
-)
-
-MAX_LENGTH = int(os.getenv("ROUTER_MAX_LENGTH", "192"))
-USE_4BIT = os.getenv("ROUTER_USE_4BIT", "true").lower() == "true"
+MAX_LENGTH = CONFIG.max_length
+USE_4BIT = CONFIG.use_4bit
 
 
 class RouterSFTDataset(Dataset):
@@ -140,6 +135,12 @@ class DataCollator:
         }
 
 
+def build_bnb_config(quantization: dict) -> BitsAndBytesConfig:
+    params = dict(quantization)
+    params["bnb_4bit_compute_dtype"] = getattr(torch, params["bnb_4bit_compute_dtype"])
+    return BitsAndBytesConfig(load_in_4bit=True, **params)
+
+
 def main():
     tokenizer = AutoTokenizer.from_pretrained(
         MODEL_NAME,
@@ -150,12 +151,7 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
 
     if USE_4BIT:
-        quant_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        )
+        quant_config = build_bnb_config(CONFIG.quantization)
     else:
         quant_config = None
 
@@ -169,22 +165,7 @@ def main():
     if USE_4BIT:
         model = prepare_model_for_kbit_training(model)
 
-    lora_config = LoraConfig(
-        r=16,
-        lora_alpha=32,
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM",
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "up_proj",
-            "down_proj",
-        ],
-    )
+    lora_config = LoraConfig(**CONFIG.lora)
 
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
@@ -192,26 +173,7 @@ def main():
     train_dataset = RouterSFTDataset(TRAIN_PATH, tokenizer, MAX_LENGTH)
     val_dataset = RouterSFTDataset(VAL_PATH, tokenizer, MAX_LENGTH)
 
-    training_args = TrainingArguments(
-        output_dir=OUTPUT_DIR,
-        num_train_epochs=5,
-        per_device_train_batch_size=4,
-        per_device_eval_batch_size=4,
-        gradient_accumulation_steps=4,
-        learning_rate=2e-4,
-        warmup_ratio=0.05,
-        logging_steps=10,
-        eval_strategy="epoch",
-        save_strategy="epoch",
-        save_total_limit=2,
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        greater_is_better=False,
-        fp16=True,
-        bf16=False,
-        report_to="none",
-        remove_unused_columns=False,
-    )
+    training_args = TrainingArguments(output_dir=OUTPUT_DIR, **CONFIG.training_args)
 
     trainer = Trainer(
         model=model,

@@ -22,10 +22,10 @@ class Neo4jClient:
     def __init__(self) -> None:
         settings = get_settings()
 
-        self.uri = settings.neo4j_uri
-        self.user = settings.neo4j_user
-        self.password = settings.neo4j_password
-        self.database = settings.neo4j_database
+        self.uri = settings.neo4j.uri
+        self.user = settings.neo4j.user
+        self.password = settings.neo4j.password
+        self.database = settings.neo4j.database
 
         self.driver = GraphDatabase.driver(
             self.uri,

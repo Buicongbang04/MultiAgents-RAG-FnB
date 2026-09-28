@@ -29,6 +29,7 @@ class BaseAgent(ABC):
         from app.llm import get_llm_client
 
         prepared = await self.prepare(agent_input)
+        prepared.llm_request.summary = agent_input.metadata.get("session_summary")
         llm = get_llm_client()
         llm_response = await llm.generate(prepared.llm_request)
 

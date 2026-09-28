@@ -27,9 +27,9 @@ class RouterAgent:
     async def classify(self, router_input: RouterInput) -> RouterOutput:
         settings = get_settings()
 
-        if settings.router_backend in {"hf_lora", "hf_merged"}:
+        if settings.router.backend in {"hf_lora", "hf_merged"}:
             try:
-                if settings.router_backend == "hf_merged":
+                if settings.router.backend == "hf_merged":
                     router = get_hf_merged_router()
                 else:
                     router = get_hf_lora_router()
@@ -38,7 +38,7 @@ class RouterAgent:
                 logger.info(
                     "Router classified session=%s backend=%s intent=%s",
                     router_input.session_id,
-                    settings.router_backend,
+                    settings.router.backend,
                     output.action.value,
                 )
                 return output
@@ -46,16 +46,16 @@ class RouterAgent:
             except Exception as exc:
                 logger.exception(
                     "HF router failed. Falling back to rule_based. backend=%s error=%s",
-                    settings.router_backend,
+                    settings.router.backend,
                     exc,
                 )
                 fallback = self._classify_rule_based(router_input)
-                fallback.metadata["fallback_from"] = settings.router_backend
+                fallback.metadata["fallback_from"] = settings.router.backend
                 fallback.metadata["fallback_error"] = str(exc)
                 return fallback
 
         # LLM-based routing (default khi SGLang đang chạy)
-        if settings.llm_backend in {"sglang", "vllm"}:
+        if settings.llm.backend in {"sglang", "vllm"}:
             from app.agents.llm_router import get_llm_router
             output = await get_llm_router().classify(router_input)
             return output

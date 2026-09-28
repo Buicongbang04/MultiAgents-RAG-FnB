@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from collections import Counter
 
@@ -11,17 +10,13 @@ from sklearn.metrics import classification_report, confusion_matrix
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-BASE_MODEL = os.getenv(
-    "ROUTER_BASE_MODEL",
-    "Qwen/Qwen2.5-0.5B-Instruct",
-)
+from app.core.config import get_settings, get_training_config
 
-ADAPTER_DIR = os.getenv(
-    "ROUTER_SFT_OUTPUT_DIR",
-    "models/router-qwen2.5-0.5b-lora",
-)
+HF_CONFIG = get_settings().router.hf
+BASE_MODEL = HF_CONFIG.base_model
+ADAPTER_DIR = HF_CONFIG.adapter_dir
 
-TEST_META_PATH = Path("data/router/sft/test_with_meta.jsonl")
+TEST_META_PATH = Path(get_training_config().router_sft.test_path)
 
 INTENTS = ["order", "consultant", "faq", "ignore"]
 
@@ -103,7 +98,7 @@ def predict(model, tokenizer, text: str) -> str:
     with torch.no_grad():
         output_ids = model.generate(
             **inputs,
-            max_new_tokens=8,
+            max_new_tokens=HF_CONFIG.max_new_tokens,
             do_sample=False,
             temperature=0.0,
             pad_token_id=tokenizer.eos_token_id,

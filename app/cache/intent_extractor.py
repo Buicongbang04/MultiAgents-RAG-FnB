@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 
 from app.cache.exact_cache import normalize_cache_text
-from app.core.config import get_settings
+from app.core.config import get_lexicon, get_settings
 from app.core.constants import Intent, Language
 from app.core.schemas import Message
 
@@ -46,53 +46,36 @@ class RuleBasedIntentExtractor(BaseIntentExtractor):
     - Không thay router.
     - Không cache order.
     - Không dùng LLM, latency rất thấp.
+
+    Toàn bộ pattern/từ khoá nằm ở configs/lexicon.yaml (intent_extractor).
     """
 
-    SUBJECT_PATTERNS: Tuple[str, ...] = (
-        r"\bcho\s+(anh|chị|em|mình|tôi|tui|bọn em|tụi em)\b",
-        r"\b(anh|chị|em|mình|tôi|tui)\s+(muốn|cần|hỏi|xin|đặt|gọi|lấy|order)\b",
-        r"\b(can i|could i|may i|i want|i need|i would like)\b",
-    )
-
-    CONTEXT_PATTERNS: Tuple[str, ...] = (
-        r"\b(hôm nay|ngày mai|mai|tối nay|sáng nay|chiều nay|trưa nay)\b",
-        r"\b(\d{1,2}h|\d{1,2}\s*giờ|\d{1,2}:\d{2})\b",
-        r"\b(sinh nhật|họp|đi làm|đi học|mang đi|take away|takeaway|delivery|ship)\b",
-        r"\b(\d+\s*(người|ly|cốc|phần|bạn))\b",
-        r"\b(ít ngọt|không đường|nhiều đá|ít đá|nóng|đá|size\s*[sml]|size\s*[SML])\b",
-        r"\b(giá mềm|giá rẻ|rẻ|budget|affordable|cheap|dễ uống)\b",
-    )
-
-    FILLER_PATTERNS: Tuple[str, ...] = (
-        r"^(dạ|ạ|nha|nhé|với|giúp|giúp em|cho em|cho anh|cho chị)\s+",
-        r"\s+(nha|nhé|ạ|với|giúp em|giúp anh|được không|được hông)\s*$",
-    )
+    def __init__(self) -> None:
+        self.lexicon = get_lexicon().intent_extractor
+        self.language_lexicon = get_lexicon().language
 
     def _detect_language(self, text: str, fallback: Language) -> Language:
         if fallback and fallback != Language.UNKNOWN:
             return fallback
 
         normalized = text.lower()
-        vi_markers = [
-            "đ", "ă", "â", "ê", "ô", "ơ", "ư",
-            "anh", "chị", "em", "mình", "quán", "món", "giá", "ngon",
-            "mật khẩu", "gợi ý", "đóng cửa", "mở cửa",
-        ]
-        if any(marker in normalized for marker in vi_markers):
+        if re.search(self.language_lexicon.vi_diacritics_pattern, normalized):
+            return Language.VI
+        if any(marker in normalized for marker in self.language_lexicon.intent_extractor_vi_markers):
             return Language.VI
         return Language.EN
 
     def _extract_subject(self, text: str, language: Language) -> str:
         normalized = text.lower().strip()
 
-        for pattern in self.SUBJECT_PATTERNS:
+        for pattern in self.lexicon.subject_patterns:
             match = re.search(pattern, normalized, flags=re.IGNORECASE)
             if match:
                 if match.lastindex:
                     return match.group(1).strip()
                 return "I" if language == Language.EN else ""
 
-        if language == Language.EN and re.search(r"\b(i|me|my)\b", normalized):
+        if language == Language.EN and re.search(self.lexicon.english_subject_pattern, normalized):
             return "I"
 
         return ""
@@ -101,7 +84,7 @@ class RuleBasedIntentExtractor(BaseIntentExtractor):
         normalized = text.lower()
         contexts: List[str] = []
 
-        for pattern in self.CONTEXT_PATTERNS:
+        for pattern in self.lexicon.context_patterns:
             for match in re.finditer(pattern, normalized, flags=re.IGNORECASE):
                 value = match.group(0).strip()
                 if value and value not in contexts:
@@ -112,17 +95,25 @@ class RuleBasedIntentExtractor(BaseIntentExtractor):
     def _clean_action_text(self, text: str) -> str:
         action = normalize_cache_text(text)
 
-        for pattern in self.FILLER_PATTERNS:
+        for pattern in self.lexicon.filler_patterns:
             action = re.sub(pattern, "", action, flags=re.IGNORECASE).strip()
 
-        action = re.sub(
-            r"\b(dạ|ạ|nha|nhé|với|giúp|em hỏi xíu|hỏi xíu|cho hỏi|xin hỏi)\b",
-            " ",
-            action,
-            flags=re.IGNORECASE,
-        )
+        action = re.sub(self.lexicon.filler_words_pattern, " ", action, flags=re.IGNORECASE)
         action = re.sub(r"\s+", " ", action).strip()
         return action
+
+    def _extract_consultant_preferences(self, normalized: str, has_budget: Any) -> List[str]:
+        preferences = [
+            pref.name for pref in self.lexicon.consultant_preferences
+            if re.search(pref.pattern, normalized)
+        ]
+        # Bỏ tiêu chí bị tiêu chí cụ thể hơn thay thế ("cà phê" khi có "không cà phê").
+        for dropped, when_present in self.lexicon.preference_overrides.items():
+            if when_present in preferences and dropped in preferences:
+                preferences.remove(dropped)
+        if has_budget:
+            preferences.append(self.lexicon.budget_preference)
+        return preferences
 
     def _classify_action_cache_key(
         self,
@@ -132,87 +123,56 @@ class RuleBasedIntentExtractor(BaseIntentExtractor):
     ) -> Tuple[str, str, float, Dict[str, Any]]:
         normalized = normalize_cache_text(text)
         action = self._clean_action_text(text)
+        confidence = self.lexicon.confidence
+        lang_key = "en" if language == Language.EN else "vi"
         metadata: Dict[str, Any] = {
             "rules": [],
             "raw_action": action,
         }
 
-        # FAQ: wifi/password
-        if re.search(r"\b(wifi|wi fi|internet|mạng|pass|password|mật khẩu)\b", normalized):
-            metadata["rules"].append("faq_wifi")
-            if language == Language.EN:
-                return "ask wifi password", "wifi password", 0.98, metadata
-            return "hỏi mật khẩu wifi", "mật khẩu wifi", 0.98, metadata
-
-        # FAQ: opening hours
-        if re.search(r"(mấy giờ|giờ mở cửa|giờ đóng cửa|đóng cửa|mở cửa|open|close|closing)", normalized):
-            metadata["rules"].append("faq_opening_hours")
-            if language == Language.EN:
-                return "ask opening hours", "opening hours", 0.96, metadata
-            return "hỏi giờ mở cửa đóng cửa", "giờ mở cửa đóng cửa", 0.96, metadata
-
-        # FAQ: payment
-        if re.search(r"(thanh toán|momo|chuyển khoản|tiền mặt|visa|bank|payment|pay)", normalized):
-            metadata["rules"].append("faq_payment")
-            if language == Language.EN:
-                return "ask payment methods", "payment methods", 0.95, metadata
-            return "hỏi phương thức thanh toán", "phương thức thanh toán", 0.95, metadata
-
-        # FAQ: delivery/takeaway
-        if re.search(r"(giao hàng|ship|delivery|mang đi|take away|takeaway)", normalized):
-            metadata["rules"].append("faq_delivery")
-            if intent == Intent.FAQ:
-                if language == Language.EN:
-                    return "ask delivery takeaway policy", "delivery takeaway policy", 0.94, metadata
-                return "hỏi chính sách giao hàng mang đi", "giao hàng mang đi", 0.94, metadata
+        # FAQ: rule đầu tiên khớp quyết định cache key chủ đề.
+        for rule in self.lexicon.faq_rules:
+            if not re.search(rule.pattern, normalized):
+                continue
+            metadata["rules"].append(rule.name)
+            if rule.only_for_intent and rule.only_for_intent != intent.value:
+                continue
+            localized = rule.en if language == Language.EN else rule.vi
+            return localized.action, localized.cache_key, rule.confidence, metadata
 
         # Consultant: recommendation
-        has_recommend = re.search(
-            r"(gợi ý|recommend|tư vấn|món nào|có gì ngon|nên uống|dễ uống|best)",
-            normalized,
-        )
-        has_budget = re.search(
-            r"(rẻ|giá mềm|tiết kiệm|ngon rẻ|không quá mắc|budget|cheap|affordable)",
-            normalized,
-        )
+        has_recommend = re.search(self.lexicon.recommend_pattern, normalized)
+        has_budget = re.search(self.lexicon.budget_pattern, normalized)
 
         if intent == Intent.CONSULTANT or has_recommend:
             metadata["rules"].append("consultant_recommendation")
-            if has_budget:
-                metadata["rules"].append("consultant_budget")
-                if language == Language.EN:
-                    return (
-                        "recommend affordable easy to drink item",
-                        "recommend affordable easy to drink item",
-                        0.94,
-                        metadata,
-                    )
-                return (
-                    "gợi ý món dễ uống giá mềm",
-                    "gợi ý món ngon rẻ dễ uống",
-                    0.94,
-                    metadata,
-                )
 
-            if language == Language.EN:
-                return "recommend menu item", "recommend menu item", 0.90, metadata
-            return "gợi ý món ngon", "gợi ý món ngon", 0.90, metadata
+            # Cache key phải chứa tiêu chí tư vấn: nếu mọi câu tư vấn cùng về một key
+            # thì "cà phê đậm vị" và "trời nóng uống gì" sẽ trả chung một đáp án cache.
+            preferences = self._extract_consultant_preferences(normalized, has_budget)
+            metadata["preferences"] = preferences
+
+            if not preferences:
+                key = self.lexicon.consultant_generic[lang_key]
+                return key, key, confidence.consultant_generic, metadata
+
+            key = self.lexicon.consultant_prefix[lang_key] + " " + " ".join(preferences)
+            return key, key, confidence.consultant_with_preferences, metadata
 
         # Order: keep item-sensitive cache_key, but order remains no-cache in CacheService.
         if intent == Intent.ORDER:
             metadata["rules"].append("order_keep_specific")
-            order_action = action
-            order_action = re.sub(r"\b(cho|anh|chị|em|mình|tôi|tui|lấy|gọi|order|đặt|mua)\b", " ", order_action)
+            order_action = re.sub(self.lexicon.order_strip_pattern, " ", action)
             order_action = re.sub(r"\s+", " ", order_action).strip()
-            return action or normalized, order_action or normalized, 0.80, metadata
+            return action or normalized, order_action or normalized, confidence.order, metadata
 
         # Ignore/noise
         if intent == Intent.IGNORE:
             metadata["rules"].append("ignore")
-            return action or normalized, action or normalized, 0.75, metadata
+            return action or normalized, action or normalized, confidence.ignore, metadata
 
         metadata["rules"].append("fallback")
-        return action or normalized, action or normalized, 0.70, metadata
+        return action or normalized, action or normalized, confidence.fallback, metadata
 
     async def extract(self, extractor_input: IntentExtractionInput) -> IntentExtractionOutput:
         language = self._detect_language(
@@ -257,7 +217,7 @@ def get_intent_extractor() -> BaseIntentExtractor:
         return _INTENT_EXTRACTOR_INSTANCE
 
     settings = get_settings()
-    backend = getattr(settings, "intent_extractor_backend", "rule_based")
+    backend = settings.intent_extractor.backend
 
     if backend in {"hf_lora", "hf_merged"}:
         from app.cache.intent_extractor_hf import HFIntentExtractor

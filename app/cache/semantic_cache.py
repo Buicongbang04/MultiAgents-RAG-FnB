@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Set
 import numpy as np
 
 from app.cache.exact_cache import normalize_cache_text
+from app.core.config import get_lexicon
 from app.core.constants import Intent
 
 
@@ -27,17 +28,15 @@ class SemanticCacheEntry:
 class SemanticInMemoryCache:
     def __init__(
         self,
-        ttl_seconds: int = 1800,
-        max_size: int = 1000,
-        thresholds: Optional[Dict[str, float]] = None,
+        ttl_seconds: int,
+        max_size: int,
+        thresholds: Dict[str, float],
+        default_threshold: float,
     ) -> None:
         self.ttl_seconds = ttl_seconds
         self.max_size = max_size
-        self.thresholds = thresholds or {
-            "faq": 0.85,
-            "consultant": 0.82,
-            "ignore": 0.90,
-        }
+        self.thresholds = dict(thresholds)
+        self.default_threshold = default_threshold
         self._entries: List[SemanticCacheEntry] = []
 
     def _cleanup_expired(self) -> None:
@@ -60,92 +59,16 @@ class SemanticInMemoryCache:
         return float(np.dot(a, b))
 
     def get_threshold(self, intent: Intent) -> float:
-        return self.thresholds.get(intent.value, 0.85)
+        return self.thresholds.get(intent.value, self.default_threshold)
 
     @staticmethod
     def _extract_domain_tags(text: str) -> Set[str]:
         text = normalize_cache_text(text)
+        domain_tags = get_lexicon().semantic_cache.domain_tags
 
         tags: Set[str] = set()
 
-        faq_patterns = {
-            "wifi": [
-                r"\bwifi\b",
-                r"wi fi",
-                r"internet",
-                r"mạng",
-                r"pass",
-                r"password",
-                r"mật khẩu",
-            ],
-            "opening_hours": [
-                r"mấy giờ",
-                r"giờ mở cửa",
-                r"giờ đóng cửa",
-                r"đóng cửa",
-                r"mở cửa",
-                r"open",
-                r"close",
-                r"closing",
-            ],
-            "payment": [
-                r"thanh toán",
-                r"momo",
-                r"chuyển khoản",
-                r"tiền mặt",
-                r"visa",
-                r"bank",
-                r"payment",
-                r"pay",
-            ],
-            "delivery": [
-                r"giao hàng",
-                r"ship",
-                r"delivery",
-                r"mang đi",
-                r"take away",
-                r"takeaway",
-            ],
-        }
-
-        consultant_patterns = {
-            "budget": [
-                r"rẻ",
-                r"giá mềm",
-                r"tiết kiệm",
-                r"ngon rẻ",
-                r"không quá mắc",
-                r"budget",
-                r"cheap",
-                r"affordable",
-            ],
-            "recommendation": [
-                r"gợi ý",
-                r"recommend",
-                r"tư vấn",
-                r"món nào",
-                r"có gì ngon",
-                r"nên uống",
-                r"dễ uống",
-                r"best",
-            ],
-            "coffee": [
-                r"cà phê",
-                r"coffee",
-                r"bạc xỉu",
-                r"latte",
-                r"americano",
-            ],
-            "tea": [
-                r"trà",
-                r"tea",
-                r"sen",
-                r"đào",
-                r"vải",
-            ],
-        }
-
-        for tag, patterns in {**faq_patterns, **consultant_patterns}.items():
+        for tag, patterns in domain_tags.items():
             for pattern in patterns:
                 if re.search(pattern, text):
                     tags.add(tag)
@@ -159,28 +82,19 @@ class SemanticInMemoryCache:
         query_tags: Set[str],
         entry_tags: Set[str],
     ) -> bool:
-        overlap = query_tags & entry_tags
-
-        if not overlap:
+        # Chỉ coi là cùng câu hỏi khi bộ tag trùng khớp hoàn toàn. Chỉ cần giao nhau
+        # (bản cũ) thì "gợi ý cà phê đậm" sẽ hit cache của "gợi ý cà phê ít ngọt".
+        if not query_tags or query_tags != entry_tags:
             return False
 
         if intent.value == "faq":
-            safe_faq_tags = {
-                "wifi",
-                "opening_hours",
-                "payment",
-                "delivery",
-            }
-            return bool(overlap & safe_faq_tags)
+            return query_tags <= set(get_lexicon().semantic_cache.faq_alias_tags)
 
         if intent.value == "consultant":
-            safe_consultant_tags = {
-                "budget",
-                "recommendation",
-                "coffee",
-                "tea",
-            }
-            return bool(overlap & safe_consultant_tags)
+            # "recommendation" có mặt ở gần như mọi câu tư vấn → không đủ để phân biệt.
+            # Tag coffee/tea/budget chưa mô tả hết khẩu vị (ít ngọt, giải nhiệt...),
+            # nên consultant chỉ hit bằng embedding similarity, không qua alias.
+            return False
 
         if intent.value == "ignore":
             return False
