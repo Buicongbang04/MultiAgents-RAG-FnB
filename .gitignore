@@ -2,3 +2,5 @@
 models/
 reports/
 LLM - multiagent_instruct.pdf
+__pycache__/
+*.pyc
