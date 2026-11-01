@@ -5,6 +5,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+from app.core.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -29,5 +32,6 @@ async def ping_database() -> bool:
         async with get_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
         return True
-    except Exception:
+    except Exception as exc:
+        logger.warning("Database ping failed: %s", exc)
         return False

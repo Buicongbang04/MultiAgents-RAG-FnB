@@ -1,5 +1,5 @@
 .env
-models/
+/models/
 reports/
 LLM - multiagent_instruct.pdf
 __pycache__/
