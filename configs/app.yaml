@@ -94,7 +94,7 @@ database:
 
 # ── LLM generator ─────────────────────────────────────────────────────────────
 llm:
-  backend: mock                  # mock | sglang | vllm
+  backend: mock                  # mock | sglang | vllm | anthropic
   base_url: http://localhost:30000/v1
   api_key: EMPTY
   model: Qwen/Qwen2.5-7B-Instruct-AWQ
@@ -102,6 +102,11 @@ llm:
   max_tokens: 512
   timeout_seconds: 60
   stream_timeout_seconds: 120
+  anthropic:                     # khóa qua env ANTHROPIC_API_KEY (không đặt trong YAML)
+    model: auto/claude-opus-5.5  # id của OmniRoute; response.model trả claude-opus-5-5
+    base_url: https://your-gateway.example.com   # rỗng = endpoint mặc định của SDK
+    timeout_seconds: 30
+    max_retries: 2
   server:                        # tham số cho scripts/SGLang_Server.sh
     host: 0.0.0.0
     port: 30000

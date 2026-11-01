@@ -1,6 +1,7 @@
 import asyncio
 
-from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse
+from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse, T
+from app.llm.errors import LLMUnavailableError
 
 
 class MockLLMClient(BaseLLMClient):
@@ -27,3 +28,6 @@ class MockLLMClient(BaseLLMClient):
         for word in text.split():
             yield word + " "
             await asyncio.sleep(0.01)
+
+    async def generate_structured(self, request: LLMGenerateRequest, schema: type[T]) -> T:
+        raise LLMUnavailableError("Mock backend không hỗ trợ structured output.")

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type
 
 import yaml
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import (
     BaseSettings,
@@ -27,6 +28,9 @@ from pydantic_settings import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Khóa bí mật (ANTHROPIC_API_KEY...) nằm trong .env; SDK Anthropic chỉ đọc os.environ
+# nên nạp .env vào môi trường (không ghi đè biến đã có).
+load_dotenv(PROJECT_ROOT / ".env", override=False)
 CONFIG_DIR = Path(os.getenv("APP_CONFIG_DIR", PROJECT_ROOT / "configs"))
 
 
@@ -131,8 +135,15 @@ class LLMServerSection(_Section):
     schedule_policy: str
 
 
+class AnthropicSection(_Section):
+    model: str
+    base_url: str  # rỗng = endpoint mặc định của SDK; khóa API lấy từ env ANTHROPIC_API_KEY
+    timeout_seconds: float
+    max_retries: int
+
+
 class LLMSection(_Section):
-    backend: Literal["mock", "sglang", "vllm"]
+    backend: Literal["mock", "sglang", "vllm", "anthropic"]
     base_url: str
     api_key: str
     model: str
@@ -141,6 +152,7 @@ class LLMSection(_Section):
     timeout_seconds: float
     stream_timeout_seconds: float
     server: LLMServerSection
+    anthropic: AnthropicSection
 
 
 # ── Router / intent extractor ─────────────────────────────────────────────────

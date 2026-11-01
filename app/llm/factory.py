@@ -17,6 +17,11 @@ def get_llm_client() -> BaseLLMClient:
     if backend == "sglang":
         return SGLangClient()
 
+    if backend == "anthropic":
+        from app.llm.anthropic_client import AnthropicClient
+
+        return AnthropicClient()
+
     if backend == "vllm":
         raise NotImplementedError(
             "vLLM client chưa implement. Sẽ dùng fallback."
