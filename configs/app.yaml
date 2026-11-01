@@ -86,6 +86,12 @@ neo4j:
   password: ""                   # secret → đặt trong .env: NEO4J__PASSWORD
   database: neo4j
 
+# Postgres = nguồn sự thật của catalog (ADR 0002).
+database:
+  url: postgresql+asyncpg://fnb@localhost:5433/fnb   # secret → đặt URL đầy đủ trong .env: DATABASE__URL
+  echo: false
+  pool_size: 5
+
 # ── LLM generator ─────────────────────────────────────────────────────────────
 llm:
   backend: mock                  # mock | sglang | vllm

@@ -114,6 +114,12 @@ class Neo4jSection(_Section):
     database: str
 
 
+class DatabaseSection(_Section):
+    url: str
+    echo: bool
+    pool_size: int
+
+
 # ── LLM ───────────────────────────────────────────────────────────────────────
 class LLMServerSection(_Section):
     host: str
@@ -340,6 +346,7 @@ class Settings(BaseSettings):
     order_dialogue: OrderDialogueSection
     queue: QueueSection
     neo4j: Neo4jSection
+    database: DatabaseSection
     llm: LLMSection
     router: RouterSection
     intent_extractor: IntentExtractorSection
