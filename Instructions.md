@@ -86,10 +86,8 @@ conda activate fiai
 ### 3. Cài dependencies
 
 ```bash
-pip install -r requirements.txt          # Core API
-pip install -r requirements-ml.txt       # HuggingFace, training
-pip install -r requirements-ui.txt       # Chainlit
-pip install -r requirements-serving.txt  # SGLang (cần CUDA)
+uv sync --extra ml --extra ui          # Core API + HuggingFace/training + Chainlit
+uv sync --extra ml --extra ui --extra serving  # thêm SGLang (cần CUDA)
 ```
 
 ### 4. Cấu hình

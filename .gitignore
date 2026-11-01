@@ -4,3 +4,9 @@ reports/
 LLM - multiagent_instruct.pdf
 __pycache__/
 *.pyc
+
+
+# File
+Ke_hoach_mo_rong_du_an_FnB_AI.docx
+.venv/
+.venv-*/

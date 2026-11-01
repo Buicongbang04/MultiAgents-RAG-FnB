@@ -508,7 +508,7 @@ CLAUSE   {clause}                                    ← mỗi khi gom đủ m�
 | Sinh dữ liệu | [generate_router_dataset.py](scripts/generate_router_dataset.py) — seed + biến thể (hậu tố "nhé/ạ/please", lỗi gõ/viết tắt "ko/k/dc/mik/wf", câu khó) | [generate_intent_extraction_dataset.py](scripts/generate_intent_extraction_dataset.py) |
 | Train | [train_router_sft.py](scripts/train_router_sft.py) | [train_intent_extractor_sft.py](scripts/train_intent_extractor_sft.py) |
 
-Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double quantization, compute fp16), LoRA `r=16`, `alpha=32`, `dropout=0.05` trên toàn bộ projection attention (`q/k/v/o_proj`) và MLP (`gate/up/down_proj`), 5 epoch, `lr=2e-4`, chọn checkpoint theo `eval_loss` từng epoch. Sau train có script **merge adapter** vào base model ([merge_router_lora.py](scripts/merge_router_lora.py)) để suy luận nhanh hơn (`router.backend: hf_merged`). Siêu tham số nằm trong [configs/training.yaml](configs/training.yaml), đường dẫn model lấy từ `router.hf` / `intent_extractor.hf` của `app.yaml`. Có script đánh giá ([evaluate_router_sft.py](scripts/evaluate_router_sft.py), [evaluate_intent_extractor_sft.py](scripts/evaluate_intent_extractor_sft.py)) và kiểm tra chất lượng dataset (đủ trường, nhãn hợp lệ, phân bố intent/ngôn ngữ/độ khó — [tests/](tests/)).
+Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double quantization, compute fp16), LoRA `r=16`, `alpha=32`, `dropout=0.05` trên toàn bộ projection attention (`q/k/v/o_proj`) và MLP (`gate/up/down_proj`), 5 epoch, `lr=2e-4`, chọn checkpoint theo `eval_loss` từng epoch. Sau train có script **merge adapter** vào base model ([merge_router_lora.py](scripts/merge_router_lora.py)) để suy luận nhanh hơn (`router.backend: hf_merged`). Siêu tham số nằm trong [configs/training.yaml](configs/training.yaml), đường dẫn model lấy từ `router.hf` / `intent_extractor.hf` của `app.yaml`. Có script đánh giá ([evaluate_router_sft.py](scripts/evaluate_router_sft.py), [evaluate_intent_extractor_sft.py](scripts/evaluate_intent_extractor_sft.py)) và kiểm tra chất lượng dataset (đủ trường, nhãn hợp lệ, phân bố intent/ngôn ngữ/độ khó — [scripts/checks/](scripts/checks/)).
 
 **Vì sao fine-tune model 0.5B thay vì prompt model 7B?** Phân loại 4 nhãn là bài toán hẹp: model nhỏ fine-tune thường đạt độ chính xác ngang/hơn model lớn prompt zero-shot, nhưng rẻ hơn nhiều lần, và **không tranh GPU với generator** (router 7B phải xếp hàng sau request sinh text vì `max-running-requests 1`).
 
@@ -520,7 +520,7 @@ Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double
 
 Môi trường đo: laptop **không dùng được GPU** (driver NVIDIA lỗi) → embedding + reranker chạy **CPU**, `llm.backend: mock`. Số liệu retrieval/router không phụ thuộc LLM; số liệu latency là cận trên (GPU sẽ nhanh hơn đáng kể).
 
-### Retrieval — [tests/rag_retrieval_benchmark.py](tests/rag_retrieval_benchmark.py) (20 câu, intent cố định)
+### Retrieval — [scripts/checks/rag_retrieval_benchmark.py](scripts/checks/rag_retrieval_benchmark.py) (20 câu, intent cố định)
 
 | Cấu hình | Top-1 | Top-5 |
 |---|---|---|
@@ -675,7 +675,7 @@ data/
 ├── router/              # dataset 800 mẫu + split SFT
 └── intent_extraction/   # dataset 1000 mẫu + split SFT
 scripts/                 # ingest, embed, train, merge, evaluate, benchmark, SGLang launcher
-tests/                   # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
+scripts/checks/            # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
 chainlit_app.py          # UI demo
 run.py                   # Entry point: check Neo4j → (Chainlit) → Uvicorn
 Instructions.md          # Hướng dẫn cài đặt & chạy
