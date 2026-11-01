@@ -47,10 +47,12 @@ def test_sdk_client_gets_explicit_key_and_base_url(monkeypatch, fresh_settings):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "key-from-env")
     monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "unrelated-token")
     monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://wrong.example.com")
+    # Pin the configured gateway so the test does not depend on a developer's .env.
+    monkeypatch.setenv("LLM__ANTHROPIC__BASE_URL", "https://gateway.test.example")
     sdk = get_llm_client()._client
     assert sdk.api_key == "key-from-env"
     assert sdk.auth_token is None
-    assert str(sdk.base_url).rstrip("/") == get_settings().llm.anthropic.base_url.rstrip("/")
+    assert str(sdk.base_url).rstrip("/") == "https://gateway.test.example"
 
 
 def test_anthropic_backend_with_key_builds_client(monkeypatch, fresh_settings):
