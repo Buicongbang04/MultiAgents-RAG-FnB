@@ -8,13 +8,13 @@
 
 import os
 import time
-from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import anthropic
+from dotenv import dotenv_values
 from pydantic import ValidationError
 
-from app.core.config import get_settings
+from app.core.config import PROJECT_ROOT, get_settings
 from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse, T
 from app.llm.errors import (
     LLMConfigurationError,
@@ -23,10 +23,20 @@ from app.llm.errors import (
 )
 
 
-def _has_credentials() -> bool:
-    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
-        return True
-    return (Path.home() / ".config" / "anthropic").is_dir()
+DEFAULT_BASE_URL = "https://api.anthropic.com"  # mặc định của SDK; truyền tường minh để không đọc ANTHROPIC_BASE_URL
+
+
+def _resolve_api_key() -> str:
+    """Chỉ ANTHROPIC_API_KEY (env, rồi .env của dự án). Cố ý bỏ qua ANTHROPIC_AUTH_TOKEN
+    và profile: không chuyển tiếp thông tin xác thực không liên quan tới gateway bên thứ ba."""
+    key = os.environ.get("ANTHROPIC_API_KEY") or dotenv_values(PROJECT_ROOT / ".env").get(
+        "ANTHROPIC_API_KEY"
+    )
+    if not key:
+        raise LLMConfigurationError(
+            "Backend 'anthropic' cần khóa API: đặt ANTHROPIC_API_KEY (biến môi trường hoặc .env)."
+        )
+    return key
 
 
 class AnthropicClient(BaseLLMClient):
@@ -38,17 +48,14 @@ class AnthropicClient(BaseLLMClient):
         if client is not None:  # tiêm client giả cho unit test
             self._client = client
             return
-        if not _has_credentials():
-            raise LLMConfigurationError(
-                "Backend 'anthropic' cần khóa API: đặt biến môi trường ANTHROPIC_API_KEY "
-                "(hoặc ANTHROPIC_AUTH_TOKEN / `ant auth login`)."
-            )
+        api_key = _resolve_api_key()
         kwargs: Dict[str, Any] = {
+            "api_key": api_key,  # tường minh: SDK không đọc ANTHROPIC_AUTH_TOKEN
+            "base_url": cfg.base_url or DEFAULT_BASE_URL,  # tường minh: SDK không đọc ANTHROPIC_BASE_URL
             "timeout": cfg.timeout_seconds,
             "max_retries": cfg.max_retries,
         }
         if cfg.base_url:
-            kwargs["base_url"] = cfg.base_url
             # Gateway OmniRoute (WAF) trả 403 cho User-Agent mặc định "Anthropic/Python ...".
             kwargs["default_headers"] = {"User-Agent": "fnb-rag-backend/0.1"}
         self._client = anthropic.AsyncAnthropic(**kwargs)

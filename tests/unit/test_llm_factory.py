@@ -22,13 +22,35 @@ def fresh_settings():
     get_llm_client.cache_clear()
 
 
-def test_anthropic_backend_without_key_fails_fast(monkeypatch, tmp_path, fresh_settings):
+@pytest.fixture
+def no_dotenv_key(monkeypatch):
+    monkeypatch.setattr("app.llm.anthropic_client.dotenv_values", lambda *_a, **_k: {})
+
+
+def test_anthropic_backend_without_key_fails_fast(monkeypatch, fresh_settings, no_dotenv_key):
     monkeypatch.setenv("LLM__BACKEND", "anthropic")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
-    monkeypatch.setenv("HOME", str(tmp_path))
     with pytest.raises(LLMConfigurationError, match="ANTHROPIC_API_KEY"):
         get_llm_client()
+
+
+def test_auth_token_alone_does_not_count(monkeypatch, fresh_settings, no_dotenv_key):
+    monkeypatch.setenv("LLM__BACKEND", "anthropic")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "unrelated-token")
+    with pytest.raises(LLMConfigurationError, match="ANTHROPIC_API_KEY"):
+        get_llm_client()
+
+
+def test_sdk_client_gets_explicit_key_and_base_url(monkeypatch, fresh_settings):
+    monkeypatch.setenv("LLM__BACKEND", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "key-from-env")
+    monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "unrelated-token")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://wrong.example.com")
+    sdk = get_llm_client()._client
+    assert sdk.api_key == "key-from-env"
+    assert sdk.auth_token is None
+    assert str(sdk.base_url).rstrip("/") == get_settings().llm.anthropic.base_url.rstrip("/")
 
 
 def test_anthropic_backend_with_key_builds_client(monkeypatch, fresh_settings):
@@ -55,3 +77,12 @@ async def test_mock_structured_raises_unavailable():
     req = LLMGenerateRequest(system_prompt="s", user_prompt="u")
     with pytest.raises(LLMUnavailableError):
         await MockLLMClient().generate_structured(req, P)
+
+
+def test_empty_base_url_uses_sdk_default_not_env(monkeypatch, fresh_settings):
+    monkeypatch.setenv("LLM__BACKEND", "anthropic")
+    monkeypatch.setenv("LLM__ANTHROPIC__BASE_URL", "")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "key-from-env")
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "https://wrong.example.com")
+    sdk = get_llm_client()._client
+    assert str(sdk.base_url).rstrip("/") == "https://api.anthropic.com"

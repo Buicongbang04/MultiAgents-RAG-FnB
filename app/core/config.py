@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Type
 
 import yaml
-from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import (
     BaseSettings,
@@ -28,9 +27,6 @@ from pydantic_settings import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-# Khóa bí mật (ANTHROPIC_API_KEY...) nằm trong .env; SDK Anthropic chỉ đọc os.environ
-# nên nạp .env vào môi trường (không ghi đè biến đã có).
-load_dotenv(PROJECT_ROOT / ".env", override=False)
 CONFIG_DIR = Path(os.getenv("APP_CONFIG_DIR", PROJECT_ROOT / "configs"))
 
 
