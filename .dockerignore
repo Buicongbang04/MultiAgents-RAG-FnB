@@ -1,0 +1,17 @@
+.git
+.venv
+.venv-*
+__pycache__
+*.pyc
+.pytest_cache
+.env
+.superpowers
+.vscode
+models
+reports
+data
+benchmarks
+tests
+docs
+*.docx
+*.pdf

@@ -76,11 +76,10 @@ git clone https://github.com/Buicongbang04/MultiAgents-RAG-FnB.git
 cd MultiAgents-RAG-FnB
 ```
 
-### 2. Tạo conda environment
+### 2. Cài uv
 
 ```bash
-conda create -n fiai python=3.11 -y
-conda activate fiai
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### 3. Cài dependencies
@@ -115,22 +114,29 @@ RERANKER__DEVICE=cuda
 
 Đổi cả bộ cấu hình (vd. cho staging): `APP_CONFIG_DIR=/path/to/configs python run.py`.
 
-### 5. Khởi động Neo4j
+### 5. Khởi động hạ tầng (Docker Compose)
 
 ```bash
-docker run \
-  --name neo4j-fnb \
-  -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/your_password \
-  -d neo4j:5
+cp .env.example .env                   # rồi sửa NEO4J__PASSWORD, ...
+docker compose up -d postgres neo4j    # Postgres :5433, Neo4j :7474/:7687
+docker compose ps                      # chờ cả hai ở trạng thái healthy
 ```
+
+Các profile tuỳ chọn:
+
+```bash
+docker compose --profile test up -d postgres-test neo4j-test  # DB riêng cho test tích hợp
+docker compose --profile local-llm up -d sglang               # SGLang trong Docker (cần GPU)
+docker compose up -d --build backend                          # backend trong Docker (port 8001)
+```
+
+Nếu còn container Neo4j chạy tay (`neo4j-fnb`) đang giữ port 7474/7687, hãy `docker stop neo4j-fnb` trước.
 
 ### 6. Nạp dữ liệu vào Graph
 
 ```bash
-conda activate fiai
-python -m scripts.ingest_mock_to_neo4j   # Xóa graph cũ + nạp menu/FAQ/docs
-python -m scripts.embed_graph            # Tạo embeddings cho vector search
+uv run python -m scripts.ingest_mock_to_neo4j   # Xóa graph cũ + nạp menu/FAQ/docs
+uv run python -m scripts.embed_graph            # Tạo embeddings cho vector search
 ```
 
 Tạo Neo4j vector index (chạy 1 lần trong Neo4j Browser):
@@ -157,7 +163,7 @@ OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 
 
 ```bash
 bash scripts/SGLang_Server.sh                          # tham số lấy từ llm.model + llm.server
-python -m scripts.launch_sglang --dry-run              # chỉ in câu lệnh sẽ chạy
+uv run python -m scripts.launch_sglang --dry-run              # chỉ in câu lệnh sẽ chạy
 bash scripts/SGLang_Server.sh -- --disable-flashinfer  # thêm cờ SGLang tuỳ ý
 ```
 
@@ -170,12 +176,11 @@ curl http://localhost:30000/v1/models
 ### Terminal 2 — Backend + UI
 
 ```bash
-conda activate fiai
 
-python run.py                          # Backend only (port 8001)
-python run.py --with-ui                # Backend + Chainlit UI (port 8501)
-python run.py --with-ui --ui-port 8080 # Đổi UI port
-python run.py --reload                 # Hot-reload (dev)
+uv run python run.py                          # Backend only (port 8001)
+uv run python run.py --with-ui                # Backend + Chainlit UI (port 8501)
+uv run python run.py --with-ui --ui-port 8080 # Đổi UI port
+uv run python run.py --reload                 # Hot-reload (dev)
 ```
 
 Sau khi start:
