@@ -1,3 +1,4 @@
+import asyncio
 import time
 from typing import Optional
 
@@ -48,7 +49,16 @@ async def health_check():
     except Exception as exc:
         logger.warning("Neo4j health check failed: %s", exc)
         neo4j_ok = False
-    postgres_ok = await ping_database()
+    try:
+        postgres_ok = await asyncio.wait_for(
+            ping_database(), timeout=settings.health.db_timeout_seconds
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Postgres health check timed out after %ss", settings.health.db_timeout_seconds)
+        postgres_ok = False
+    except Exception as exc:
+        logger.warning("Postgres health check failed: %s", exc)
+        postgres_ok = False
 
     return {
         "status": "ok" if (neo4j_ok and postgres_ok) else "degraded",

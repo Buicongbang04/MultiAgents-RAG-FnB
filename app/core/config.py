@@ -61,6 +61,7 @@ class RateLimitSection(_Section):
 
 class HealthSection(_Section):
     llm_timeout_seconds: float
+    db_timeout_seconds: float
 
 
 class SessionSection(_Section):

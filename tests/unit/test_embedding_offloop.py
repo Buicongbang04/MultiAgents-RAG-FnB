@@ -52,3 +52,24 @@ def test_arerank_runs_predict_in_thread():
     out = asyncio.run(reranker.arerank("q", sources, top_k=1, threshold=0.0))
     assert len(out) == 1
     assert model.threads and model.threads[0] != loop_thread
+
+
+def test_concurrent_arerank_loads_model_once(monkeypatch):
+    import time
+
+    loads = []
+    reranker = BGEReranker(model_name="x", device="cpu", dtype="float32")
+
+    def slow_load():
+        loads.append(1)
+        time.sleep(0.2)
+        reranker._model = _FakeModel()
+
+    monkeypatch.setattr(reranker, "_load_unlocked", slow_load)
+    sources = [RetrievedSource(source_id="1", text="t", score=0.1, source_type="faq")]
+
+    async def run():
+        await asyncio.gather(*[reranker.arerank("q", list(sources), top_k=1) for _ in range(8)])
+
+    asyncio.run(run())
+    assert len(loads) == 1

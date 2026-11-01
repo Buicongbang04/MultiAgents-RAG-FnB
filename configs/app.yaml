@@ -30,6 +30,7 @@ rate_limit:
 
 health:
   llm_timeout_seconds: 3.0
+  db_timeout_seconds: 2.0
 
 # ── Session & bộ nhớ hội thoại ────────────────────────────────────────────────
 session:

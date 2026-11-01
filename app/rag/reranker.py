@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from functools import lru_cache
 from typing import List, Tuple
 
@@ -21,10 +22,18 @@ class BGEReranker:
         self.device = device
         self.dtype = dtype
         self._model = None
+        self._load_lock = threading.Lock()
 
     def _load(self):
+        # Double-checked lock: arerank chạy trong nhiều thread, tránh nạp model hai lần (VRAM spike).
         if self._model is not None:
             return
+        with self._load_lock:
+            if self._model is not None:
+                return
+            self._load_unlocked()
+
+    def _load_unlocked(self):
         try:
             import torch
             from sentence_transformers import CrossEncoder

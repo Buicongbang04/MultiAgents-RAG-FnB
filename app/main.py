@@ -20,8 +20,13 @@ logger = get_logger(__name__)
 
 async def _warmup_models() -> None:
     started = time.perf_counter()
-    await get_embedding_client().embed_text("khởi động")
-    await asyncio.to_thread(get_reranker().warmup)
+    try:
+        await get_embedding_client().embed_text("khởi động")
+        await asyncio.to_thread(get_reranker().warmup)
+    except Exception as exc:
+        # Degrade: vẫn phục vụ, model sẽ nạp lười ở request đầu.
+        logger.warning("Model warmup failed (%s); continuing, models will lazy-load.", exc)
+        return
     logger.info("Model warmup done in %.2fs", time.perf_counter() - started)
 
 

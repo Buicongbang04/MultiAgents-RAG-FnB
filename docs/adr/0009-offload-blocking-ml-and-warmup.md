@@ -13,6 +13,9 @@ Trạng thái: Chấp nhận (2026-11-01)
 - `embed_text` / `embed_batch` chạy `model.encode` qua `asyncio.to_thread`. Reranker có thêm `async arerank(...)` (cùng tham số/kết quả với `rerank`) chạy `predict` trong thread; retriever `await arerank`. `NullReranker` cũng có `arerank`.
 - Thêm `embedding.dtype` và `reranker.dtype` (`float16|float32`) trong `configs/app.yaml`. fp16 chỉ áp dụng khi device là `cuda`; device khác bị ép `float32`.
 - Thêm `server.warmup_on_startup`. Khi bật, lifespan chạy một `embed_text("khởi động")` và một cặp rerank trước khi nhận request, và log thời lượng. Lifespan vẫn tạo LLM client lúc khởi động và đóng khi tắt. Lifespan cũng gọi `setup_logging()` để log INFO không bị nuốt khi chạy bằng uvicorn.
+- Warmup lỗi không làm sập khởi động: bắt exception, log warning kèm lỗi, tiếp tục phục vụ; model nạp lười ở request đầu (degrade thay vì fail-fast, vì thiếu warmup chỉ làm chậm request đầu chứ không sai).
+- `BGEReranker._load` dùng `threading.Lock` kiểu double-checked vì `arerank` chạy trong nhiều thread; tránh nạp model hai lần và vọt VRAM khi warmup tắt.
+- `/health` bọc `ping_database()` bằng `asyncio.wait_for` với `health.db_timeout_seconds` (2.0); quá hạn thì ghi warning và `postgres=false`.
 - `/health` thêm `"postgres": bool` (từ `ping_database()`); `status` là `"ok"` chỉ khi neo4j và postgres đều true, ngược lại `"degraded"`. Không bao giờ raise (lỗi neo4j cũng được bắt).
 - `torch` / `sentence_transformers` chỉ import bên trong đường nạp model, không import ở mức module, để unit test với `embedding.backend=mock` không cần torch.
 
