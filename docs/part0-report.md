@@ -18,7 +18,7 @@ Nhánh `feat/part0-foundation`. Báo cáo này dành cho chủ dự án: đã th
 
 | Hạng mục | Kết quả | Nguồn |
 |---|---|---|
-| VRAM backend (không SGLang), embedding + reranker fp16 | khoảng 2,3 – 2,4 GB (đo lại ở Task 9: tiến trình uvicorn 2.518 MiB sau khi chạy probe) | Task 7, Task 9 |
+| VRAM backend (không SGLang), embedding + reranker fp16 | Hai điểm đo khác nhau: Task 7 đo khoảng 2,3 – 2,4 GB ngay sau warmup và vài request đầu; Task 9 đo 2.518 MiB (nvidia-smi) sau khi đã chạy hết probe 19 lượt với cả hai backend, nên cao hơn một chút do cache/bộ nhớ đệm của CUDA tăng theo tải | Task 7, Task 9 |
 | Warmup lúc khởi động | 15,2 s | Task 7 |
 | `/chat` đầu tiên / thứ hai (sau warmup) | 2,19 s / 0,65 s | Task 7 |
 | Claude qua OmniRoute: generate | khoảng 4,6 – 5 s | Task 6 |
@@ -28,7 +28,7 @@ Nhánh `feat/part0-foundation`. Báo cáo này dành cho chủ dự án: đã th
 
 ### Kết quả probe (Task 9)
 
-Tất cả 17 lượt của mỗi lần chạy trả HTTP 200, không có lỗi trong log backend.
+Tất cả 19 lượt của mỗi lần chạy (6+4+4+5, chưa kể lượt riêng "Có giao hàng không?") trả HTTP 200, không có lỗi trong log backend.
 
 **Intent** (giống hệt bản nền ở spec mục 2, cả hai backend): a = order x6; b = faq x4; c = consultant x3 rồi order; d = order x4 rồi ignore.
 
