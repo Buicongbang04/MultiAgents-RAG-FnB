@@ -84,3 +84,61 @@ def test_vector_indexes_online(graph):
     ensure_indexes(graph)  # idempotent
     names = {r["name"] for r in graph.execute_query("SHOW VECTOR INDEXES YIELD name RETURN name")}
     assert {"menu_embedding", "faq_embedding", "chunk_embedding"} <= names
+
+
+async def test_hidden_product_not_retrievable(seeded, graph, monkeypatch):
+    from app.core.schemas import Intent, RAGQuery, SourceType
+    from app.rag import retriever as retriever_module
+    from app.rag.embedding_client import MockEmbeddingClient
+
+    ensure_indexes(graph)
+    embedder = MockEmbeddingClient(dim=1024)
+
+    async def project_and_embed():
+        await project_catalog(seeded, graph)
+        # Mock embeddings written to the test graph so the vector path is exercised too.
+        for r in graph.execute_query("MATCH (m:MenuItem) RETURN m.id AS id, m.name_vi AS n"):
+            graph.execute_query(
+                "MATCH (m:MenuItem {id:$id}) SET m.embedding=$e",
+                {"id": r["id"], "e": await embedder.embed_text(r["n"])},
+            )
+
+    monkeypatch.setattr(menu_module, "neo4j_client", graph)
+    monkeypatch.setattr(retriever_module, "neo4j_client", graph)
+    monkeypatch.setattr(retriever_module, "get_embedding_client", lambda: embedder)
+    retriever = retriever_module.GraphRetriever()
+    query = RAGQuery(query="Bạc xỉu", intent=Intent.ORDER, top_k=20)
+    methods = (
+        retriever.retrieve,
+        retriever.retrieve_hybrid,
+        retriever.retrieve_hybrid_with_graph_expansion,
+    )
+
+    async def bac_xiu_sources(method) -> set[str]:
+        hidden = {
+            r["id"]
+            for r in graph.execute_query("MATCH (m:MenuItem {product_id:'bac-xiu'}) RETURN m.id AS id")
+        }
+        result = await method(query)
+        return {s.source_id for s in result.sources if s.source_type == SourceType.MENU} & hidden
+
+    # Positive control: while available, the product is retrievable.
+    await project_and_embed()
+    for method in methods:
+        assert await bac_xiu_sources(method), f"control failed: {method.__name__}"
+
+    product = await seeded.get(Product, "bac-xiu")
+    product.status = "hidden"
+    await seeded.flush()
+    await project_and_embed()
+
+    rows = graph.execute_query("MATCH (m:MenuItem {product_id:'bac-xiu'}) RETURN m.available AS a")
+    assert len(rows) == 3 and all(r["a"] is False for r in rows)
+
+    invalidate_menu_caches()
+    try:
+        assert "Bạc xỉu" not in get_menu_names()
+        for method in methods:
+            assert not await bac_xiu_sources(method), method.__name__
+    finally:
+        invalidate_menu_caches()

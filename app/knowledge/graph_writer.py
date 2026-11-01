@@ -334,7 +334,8 @@ def graph_stats(graph: Neo4jClient) -> dict[str, int]:
 
 async def project_catalog(db: AsyncSession, graph: Neo4jClient) -> ProjectionStats:
     """Clear the graph and rebuild it from Postgres. Sold-out/hidden products stay as
-    unavailable MenuItems (retrieval filters on coalesce(m.available, true))."""
+    MenuItems with available=false; every query returning MenuItems (retriever keyword/vector/
+    expansion, app/rag/menu.py) excludes them via coalesce(m.available, true)."""
     products = await list_products(db, include_hidden=True)
     faqs = await list_faqs(db)
     chunks = await list_policy_chunks(db)

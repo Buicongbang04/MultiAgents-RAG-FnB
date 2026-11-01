@@ -356,7 +356,7 @@ graph LR
 - **FAQ**: `topic`, `question`, `answer`, `embedding`.
 - **Chunk**: đoạn chính sách (hoàn tiền, tuỳ chỉnh, combo…), nối nhau bằng `NEXT` theo thứ tự trong tài liệu.
 - **Entity**: nguyên liệu, tag, và **11 domain entity** định nghĩa sẵn (chủ đề FAQ: wifi/giờ/giao hàng/size/thanh toán; sở thích: ít ngọt, giá rẻ; danh mục: coffee/tea/freeze/food) — liên kết bằng khớp từ khoá khi ingest.
-- Tổng: 55 MenuItem, 30 FAQ, 20 Chunk, 157 Entity, 4 Category, **832 quan hệ**.
+- Tổng: 55 MenuItem, 30 FAQ, 20 Chunk, 157 Entity, 4 Category, **838 quan hệ**.
 - Embedding BGE-M3 (1024 chiều) cho MenuItem/FAQ/Chunk ([app/rag/vector_index.py](app/rag/vector_index.py)) + 3 **Neo4j vector index** (cosine): `menu_embedding`, `faq_embedding`, `chunk_embedding`.
 
 ### 9.2 Pipeline truy xuất (`rag.retrieval_mode: hybrid_graph`)

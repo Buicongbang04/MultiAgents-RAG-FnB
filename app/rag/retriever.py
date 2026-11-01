@@ -305,6 +305,7 @@ class GraphRetriever:
                         WHERE toLower(e.name) CONTAINS toLower($term)
                     }
 
+                WITH m WHERE coalesce(m.available, true)
                 RETURN
                     m.id as id,
                     m.name_vi as name,
@@ -501,6 +502,7 @@ class GraphRetriever:
                 """
                 CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
                 YIELD node AS m, score
+                WHERE coalesce(m.available, true)
                 RETURN
                     m.id AS id,
                     m.name_vi AS name,
@@ -542,7 +544,7 @@ class GraphRetriever:
         rows = neo4j_client.execute_query(
             """
             MATCH (m:MenuItem)
-            WHERE m.embedding IS NOT NULL
+            WHERE m.embedding IS NOT NULL AND coalesce(m.available, true)
             RETURN
                 m.id AS id,
                 m.name_vi AS name,
@@ -957,7 +959,7 @@ class GraphRetriever:
         rows = neo4j_client.execute_query(
             """
             MATCH (m:MenuItem {id: $source_id})-[:BELONGS_TO]->(cat:Category)<-[:BELONGS_TO]-(other:MenuItem)
-            WHERE other.id <> m.id
+            WHERE other.id <> m.id AND coalesce(other.available, true)
             RETURN
                 other.id AS id,
                 other.name_vi AS name,
