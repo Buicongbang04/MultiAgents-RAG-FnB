@@ -228,7 +228,7 @@ class GraphRetriever:
         rerank_query = rag_query.query
         if rag_query.intent and rag_query.intent.value in self.config.rerank_clean_query_intents:
             rerank_query = build_clean_query(rag_query.query)
-        final_sources = reranker.rerank(
+        final_sources = await reranker.arerank(
             query=rerank_query,
             sources=final_sources,
             top_k=top_k,

@@ -50,6 +50,7 @@ class ServerSection(_Section):
     ui_port: int
     neo4j_startup_retries: int
     neo4j_startup_retry_delay_seconds: float
+    warmup_on_startup: bool
 
 
 class RateLimitSection(_Section):
@@ -204,6 +205,7 @@ class EmbeddingSection(_Section):
     model: str
     dim: int
     device: str
+    dtype: Literal["float16", "float32"]
     batch_size: int
 
 
@@ -211,6 +213,7 @@ class RerankerSection(_Section):
     backend: Literal["bge", "null"]
     model: str
     device: str
+    dtype: Literal["float16", "float32"]
     threshold: float
 
 

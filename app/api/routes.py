@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.cache.cache_service import cache_service
 from app.core.config import get_settings
 from app.core.logging import get_logger
+from app.db.session import ping_database
 from app.core.schemas import ChatRequest, ErrorResponse
 from app.queueing.request_queue import QueueExecutionError, QueueTimeoutError, queue_manager
 from app.rag.neo4j_client import neo4j_client
@@ -42,9 +43,17 @@ async def health_check():
         except Exception as exc:
             llm_status = f"error: {exc}"
 
+    try:
+        neo4j_ok = bool(neo4j_client.verify_connection())
+    except Exception as exc:
+        logger.warning("Neo4j health check failed: %s", exc)
+        neo4j_ok = False
+    postgres_ok = await ping_database()
+
     return {
-        "status": "ok",
-        "neo4j": neo4j_client.verify_connection(),
+        "status": "ok" if (neo4j_ok and postgres_ok) else "degraded",
+        "neo4j": neo4j_ok,
+        "postgres": postgres_ok,
         "llm": llm_status,
         "queues": queue_manager.stats(),
     }

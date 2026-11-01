@@ -21,6 +21,7 @@ server:
   ui_port: 8501
   neo4j_startup_retries: 3       # run.py kiểm tra Neo4j trước khi start
   neo4j_startup_retry_delay_seconds: 2.0
+  warmup_on_startup: true        # nạp + chạy thử embedding/reranker trước khi nhận request
 
 rate_limit:
   max_requests: 60               # số request tối đa / IP / cửa sổ
@@ -166,12 +167,14 @@ embedding:
   model: BAAI/bge-m3
   dim: 1024
   device: cuda
+  dtype: float16                 # float16 chỉ áp dụng khi device=cuda, ngược lại ép float32
   batch_size: 16
 
 reranker:
   backend: bge                   # bge | null
   model: BAAI/bge-reranker-v2-m3
   device: cuda
+  dtype: float16
   # Điểm là xác suất sigmoid: nguồn đúng thường 0.02–0.99, câu ngoài dữ liệu ≤ 0.003.
   threshold: 0.01
 
