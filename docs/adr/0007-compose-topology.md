@@ -13,7 +13,7 @@ Dùng một `docker-compose.yml` gồm:
 
 - `postgres` (16, host port 5433) và `neo4j` (5, 7474/7687), có volume đặt tên và healthcheck.
 - `postgres-test` (5434) và `neo4j-test` (7475/7688) thuộc profile `test`, dùng `tmpfs` nên dữ liệu mất khi dừng.
-- `backend` build từ `Dockerfile` (python:3.11-slim, `uv sync --frozen --extra ml --no-dev`), phụ thuộc postgres và neo4j ở trạng thái healthy; `backend-gpu` (profile `gpu`) thêm GPU reservation.
+- `backend` build từ `Dockerfile` (python:3.11-slim, `uv sync --frozen --extra ml --no-dev`), phụ thuộc postgres và neo4j ở trạng thái healthy; file `docker-compose.gpu.yml` là override chỉ thêm GPU reservation cho `backend` (`docker compose -f docker-compose.yml -f docker-compose.gpu.yml up backend`).
 - `sglang` thuộc profile `local-llm`, cần GPU, không tự chạy.
 
 ## Lý do

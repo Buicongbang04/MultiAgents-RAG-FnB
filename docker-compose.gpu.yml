@@ -1,0 +1,13 @@
+# Override: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up backend
+services:
+  backend:
+    environment:
+      EMBEDDING__DEVICE: cuda
+      RERANKER__DEVICE: cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

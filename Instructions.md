@@ -128,6 +128,7 @@ Các profile tuỳ chọn:
 docker compose --profile test up -d postgres-test neo4j-test  # DB riêng cho test tích hợp
 docker compose --profile local-llm up -d sglang               # SGLang trong Docker (cần GPU)
 docker compose up -d --build backend                          # backend trong Docker (port 8001)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build backend  # backend + GPU
 ```
 
 Nếu còn container Neo4j chạy tay (`neo4j-fnb`) đang giữ port 7474/7687, hãy `docker stop neo4j-fnb` trước.

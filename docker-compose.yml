@@ -72,7 +72,7 @@ services:
     environment:
       NEO4J__URI: bolt://neo4j:7687
       NEO4J__PASSWORD: ${NEO4J__PASSWORD:?set NEO4J__PASSWORD in .env}
-      DATABASE__URL: postgresql+psycopg://fnb:${POSTGRES_PASSWORD:-fnb}@postgres:5432/fnb
+      DATABASE__URL: postgresql+asyncpg://fnb:${POSTGRES_PASSWORD:-fnb}@postgres:5432/fnb
       LLM__BACKEND: ${LLM__BACKEND:-mock}
       EMBEDDING__DEVICE: ${EMBEDDING__DEVICE:-cpu}
       RERANKER__DEVICE: ${RERANKER__DEVICE:-cpu}
@@ -90,22 +90,6 @@ services:
       timeout: 10s
       retries: 10
       start_period: 90s
-
-  # GPU override for the backend: docker compose --profile gpu up backend-gpu
-  backend-gpu:
-    extends:
-      service: backend
-    profiles: [gpu]
-    environment:
-      EMBEDDING__DEVICE: cuda
-      RERANKER__DEVICE: cuda
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   sglang:
     image: lmsysorg/sglang:latest

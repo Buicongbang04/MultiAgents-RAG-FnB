@@ -9,7 +9,8 @@ __pycache__
 .vscode
 models
 reports
-data
+data/*
+!data/mock
 benchmarks
 tests
 docs
