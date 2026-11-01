@@ -339,7 +339,7 @@ Các nguyên tắc:
 
 ## 9. Graph RAG — trái tim của hệ thống
 
-### 9.1 Mô hình đồ thị ([scripts/ingest_mock_to_neo4j.py](scripts/ingest_mock_to_neo4j.py))
+### 9.1 Mô hình đồ thị ([app/knowledge/graph_writer.py](app/knowledge/graph_writer.py), nạp bằng `uv run python -m scripts.bootstrap`)
 
 ```mermaid
 graph LR

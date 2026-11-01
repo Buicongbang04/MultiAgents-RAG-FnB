@@ -136,25 +136,12 @@ Nếu còn container Neo4j chạy tay (`neo4j-fnb`) đang giữ port 7474/7687, 
 ### 6. Nạp dữ liệu vào Graph
 
 ```bash
-uv run python -m scripts.ingest_mock_to_neo4j   # Xóa graph cũ + nạp menu/FAQ/docs
-uv run python -m scripts.embed_graph            # Tạo embeddings cho vector search
+uv run python -m scripts.bootstrap            # migrate Postgres → seed → tạo index → chiếu sang Neo4j → embed
+uv run python -m scripts.bootstrap --reset    # xóa catalog Postgres rồi nạp lại
+uv run python -m scripts.bootstrap --skip-embed   # bỏ bước embedding
 ```
 
-Tạo Neo4j vector index (chạy 1 lần trong Neo4j Browser):
-
-```cypher
-CREATE VECTOR INDEX menu_embedding IF NOT EXISTS
-FOR (m:MenuItem) ON m.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-
-CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
-FOR (c:Chunk) ON c.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-
-CREATE VECTOR INDEX faq_embedding IF NOT EXISTS
-FOR (f:FAQ) ON f.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-```
+Lệnh trên đã tự tạo constraint và 3 vector index (`menu_embedding`, `faq_embedding`, `chunk_embedding`), không cần chạy Cypher thủ công.
 
 ---
 

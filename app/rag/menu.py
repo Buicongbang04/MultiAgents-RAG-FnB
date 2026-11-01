@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from functools import lru_cache
 
 from app.rag.neo4j_client import neo4j_client
@@ -17,6 +18,9 @@ def get_menu_variants(names: list[str]) -> dict[str, list[dict]]:
     if not names:
         return {}
 
+    # Lookups are NFC-normalized (graph names are stored NFC); results keyed by the caller's names.
+    nfc_names = {unicodedata.normalize("NFC", n): n for n in names}
+
     rows = neo4j_client.execute_query(
         """
         UNWIND $names AS name
@@ -25,12 +29,12 @@ def get_menu_variants(names: list[str]) -> dict[str, list[dict]]:
         RETURN name, m.id AS id, m.name_vi AS name_vi, m.size AS size,
                m.price AS price, m.category AS category, m.description AS description
         """,
-        {"names": names},
+        {"names": list(nfc_names)},
     )
 
     variants: dict[str, list[dict]] = {name: [] for name in names}
     for row in rows:
-        variants[row["name"]].append(
+        variants[nfc_names[row["name"]]].append(
             {
                 "id": row["id"],
                 "name": row["name_vi"],
@@ -78,3 +82,9 @@ def get_menu_names() -> tuple[str, ...]:
         """
     )
     return tuple(row["name"] for row in rows if row["name"])
+
+
+def invalidate_menu_caches() -> None:
+    """Gọi sau khi project lại catalog vào graph để lấy menu mới."""
+    get_menu_vocabulary.cache_clear()
+    get_menu_names.cache_clear()

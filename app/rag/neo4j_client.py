@@ -19,12 +19,18 @@ class Neo4jClient:
     Retrieval logic sẽ ở phase sau.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        uri: str | None = None,
+        user: str | None = None,
+        password: str | None = None,
+    ) -> None:
         settings = get_settings()
 
-        self.uri = settings.neo4j.uri
-        self.user = settings.neo4j.user
-        self.password = settings.neo4j.password
+        # Explicit values (e.g. the test instance) override settings.
+        self.uri = uri or settings.neo4j.uri
+        self.user = user or settings.neo4j.user
+        self.password = password if password is not None else settings.neo4j.password
         self.database = settings.neo4j.database
 
         self.driver = GraphDatabase.driver(
