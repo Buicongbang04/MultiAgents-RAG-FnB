@@ -105,8 +105,8 @@ llm:
   timeout_seconds: 60
   stream_timeout_seconds: 120
   anthropic:                     # khóa qua env ANTHROPIC_API_KEY (không đặt trong YAML)
-    model: auto/claude-opus-5.5  # id của OmniRoute; response.model trả claude-opus-5-5
-    base_url: https://your-gateway.example.com   # rỗng = endpoint mặc định của SDK
+    model: claude-opus-5-5       # id Anthropic gốc; gateway riêng thì override qua .env
+    base_url: ""                 # rỗng = api.anthropic.com; gateway: LLM__ANTHROPIC__BASE_URL trong .env
     timeout_seconds: 30
     max_retries: 2
   server:                        # tham số cho scripts/SGLang_Server.sh

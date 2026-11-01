@@ -1,6 +1,6 @@
 # MultiAgents RAG FnB
 
-Chatbot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy hoàn toàn Local — không phụ thuộc Cloud API.
+Chatbot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy Local theo mặc định (SGLang/mock); backend LLM Cloud (Claude) là tuỳ chọn.
 
 Hệ thống xử lý 4 luồng: **Đặt hàng**, **Tư vấn menu**, **FAQ**, **Ignore/Noise**.
 
@@ -86,8 +86,18 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 uv sync --extra ml --extra ui          # Core API + HuggingFace/training + Chainlit
-uv sync --extra ml --extra ui --extra serving  # thêm SGLang (cần CUDA)
 ```
+
+SGLang **không** nằm trong extras của dự án (phụ thuộc vllm/torch xung đột với lockfile). Chạy SGLang từ venv riêng:
+
+```bash
+uv venv .venv-sglang --python 3.11
+uv pip install --python .venv-sglang/bin/python "sglang[all]"
+# Khi khởi động thêm cờ đã chạy được trên máy phát triển:
+bash scripts/SGLang_Server.sh -- --attention-backend triton --sampling-backend pytorch
+```
+
+Hoặc dùng Docker: `docker compose --profile local-llm up -d sglang` (cần GPU).
 
 ### 4. Cấu hình
 
@@ -111,6 +121,19 @@ LLM__BACKEND=sglang            # mock nếu không có GPU
 EMBEDDING__DEVICE=cuda         # cpu nếu không có GPU
 RERANKER__DEVICE=cuda
 ```
+
+### Backend Claude
+
+`LLM__BACKEND=anthropic` gọi thẳng `api.anthropic.com` với model `claude-opus-5-5` (mặc định trong `app.yaml`). Khóa **chỉ** đọc từ biến môi trường `ANTHROPIC_API_KEY` (đặt trong `.env`, không đặt trong YAML; `ANTHROPIC_AUTH_TOKEN` và profile `ant auth login` bị bỏ qua có chủ đích).
+
+Nếu dùng gateway tương thích Anthropic riêng, override theo máy trong `.env` (không commit):
+
+```env
+LLM__ANTHROPIC__BASE_URL=https://your-gateway.example.com   # gốc domain, không có /v1
+LLM__ANTHROPIC__MODEL=your-gateway-model-id
+```
+
+Lưu ý: khi đặt `BASE_URL`, `ANTHROPIC_API_KEY` sẽ được gửi tới host đó.
 
 Đổi cả bộ cấu hình (vd. cho staging): `APP_CONFIG_DIR=/path/to/configs python run.py`.
 
@@ -179,6 +202,16 @@ Kiểm tra hệ thống:
 
 ```bash
 curl http://localhost:8001/health
+```
+
+---
+
+## Chạy test
+
+```bash
+uv run pytest -q                                              # unit test, không cần hạ tầng
+docker compose --profile test up -d postgres-test neo4j-test  # hạ tầng cho integration test
+uv run pytest -m integration -q
 ```
 
 ---
@@ -262,7 +295,7 @@ app/
 ├── api/           # FastAPI routes (/chat, /cache/invalidate, /health)
 ├── cache/         # Exact cache + Semantic cache
 ├── core/          # Config, schemas, constants
-├── llm/           # SGLang client
+├── llm/           # SGLang / Claude / mock client
 ├── middleware/    # Rate limiting
 ├── prompts/       # System prompts cho từng agent
 ├── queueing/      # Concurrency control (Semaphore + retry)
@@ -277,6 +310,7 @@ data/mock/
 └── docs.jsonl     # 20 policy chunks
 
 scripts/           # Ingest, embed, benchmark, training
+tests/             # Unit (tests/unit) & integration (tests/integration) test
 chainlit_app.py    # Chainlit UI (word-by-word animation)
 run.py             # Entry point duy nhất
 ```

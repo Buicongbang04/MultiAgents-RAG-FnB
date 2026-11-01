@@ -1,1 +1,2 @@
-# Dependencies are managed in pyproject.toml (extras: ml, ui, serving). Use: uv sync --extra ml --extra ui
+# Dependencies are managed in pyproject.toml (extras: ml, ui). Use: uv sync --extra ml --extra ui
+# SGLang is not a project extra: run it from a separate venv (see Instructions.md) or the compose `local-llm` profile.

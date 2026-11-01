@@ -3,7 +3,8 @@
 - Không gửi temperature/top_p/top_k (API hiện tại từ chối); độ "suy nghĩ" điều khiển bằng
   effort trong output_config.
 - System prompt gửi dạng block có cache_control để cache prompt cố định.
-- Khóa API lấy từ env (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN / profile `ant auth login`).
+- Khóa API CHỈ đọc từ ANTHROPIC_API_KEY. ANTHROPIC_AUTH_TOKEN và profile `ant auth login`
+  cố ý bị bỏ qua để không rò credential không liên quan sang gateway bên thứ ba.
 """
 
 import os

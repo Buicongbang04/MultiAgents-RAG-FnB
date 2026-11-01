@@ -14,7 +14,7 @@ Môi trường không tái lập được giữa các máy và các thời đi�
 
 ## Quyết định
 
-Dùng `uv` với `pyproject.toml` và `uv.lock` được commit. Dependency lõi nằm trong `dependencies`; các nhóm tuỳ chọn là extras: `ml`, `ui`, `serving` (SGLang). Cài bằng `uv sync --extra ml --extra ui`. Các file `requirements*.txt` giữ lại nhưng chỉ chứa ghi chú trỏ tới `pyproject.toml`. Ghim đã kiểm chứng: `transformers==4.57.6`, `huggingface_hub==0.36.0`, `datasets>=3,<4.4`.
+Dùng `uv` với `pyproject.toml` và `uv.lock` được commit. Dependency lõi nằm trong `dependencies`; các nhóm tuỳ chọn là extras: `ml`, `ui` (SGLang chạy từ venv riêng hoặc compose, xem Instructions.md). Cài bằng `uv sync --extra ml --extra ui`. Các file `requirements*.txt` giữ lại nhưng chỉ chứa ghi chú trỏ tới `pyproject.toml`. Lock chỉ cho Linux (`environments = ["sys_platform == 'linux'"]`): `trl==0.11.4` đòi `numpy<2` trên win32 trong khi dự án ghim `numpy 2.2.1`, nên không resolve được cho Windows; dự án nhắm Linux + CUDA. Ghim đã kiểm chứng: `transformers==4.57.6`, `huggingface_hub==0.36.0`, `datasets>=3,<4.4`.
 
 ## Lý do
 

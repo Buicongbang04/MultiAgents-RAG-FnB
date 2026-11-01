@@ -43,9 +43,6 @@ ui = [
     "chainlit==2.0.3",
     "sniffio>=1.3.1",
 ]
-serving = [
-    "sglang[all]",
-]
 
 [tool.uv]
 package = false

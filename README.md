@@ -596,7 +596,7 @@ Phát hiện khi đo đạc lại hệ thống — mỗi bug đều được tá
 - Session và cache nằm trong RAM của 1 process → mất khi restart, không scale nhiều instance. Hướng: **Redis** (session, exact cache) + vector store cho semantic cache.
 - Rate limit in-memory theo IP → cần Redis/gateway khi scale ngang.
 - Chainlit gọi `/chat` rồi tự tạo hiệu ứng gõ chữ, chưa dùng `/chat/stream` thật.
-- Chưa có CI, bộ test pytest tự động và bộ đánh giá end-to-end lớn (chấm theo `source_id`, LLM-as-judge cho câu trả lời).
+- Đã có CI và bộ test pytest (unit + integration), nhưng chưa có bộ đánh giá end-to-end lớn (chấm theo `source_id`, LLM-as-judge cho câu trả lời).
 
 ---
 
@@ -675,7 +675,8 @@ data/
 ├── router/              # dataset 800 mẫu + split SFT
 └── intent_extraction/   # dataset 1000 mẫu + split SFT
 scripts/                 # ingest, embed, train, merge, evaluate, benchmark, SGLang launcher
-scripts/checks/            # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
+  checks/                # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
+tests/                   # unit (tests/unit) + integration (tests/integration, cần compose profile test)
 chainlit_app.py          # UI demo
 run.py                   # Entry point: check Neo4j → (Chainlit) → Uvicorn
 Instructions.md          # Hướng dẫn cài đặt & chạy

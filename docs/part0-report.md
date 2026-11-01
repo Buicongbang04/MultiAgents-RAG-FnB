@@ -47,7 +47,7 @@ Tất cả 19 lượt của mỗi lần chạy (6+4+4+5, chưa kể lượt riê
 - H6 (mock): "ít ngọt" và "rẻ hơn" trả lại đúng câu gợi ý cũ (vẫn có Chocolate Freeze).
 - H7/H8: lời mời "Anh/chị cần gọi thêm gì nữa không ạ?" lặp sau mỗi lần thêm; giọng điệu chưa thống nhất giữa các câu.
 - H9: với Claude, độ trễ 2 – 12 s mỗi lượt, chưa stream.
-- Quan sát thêm với Claude: ở phiên b lượt 4 và phiên d, Claude tự "đính chính" thông tin cũ không có thật hoặc đổi số lượng (1 ly thành 2 ly rồi lại 1 ly). Đây là hậu quả của việc trạng thái order chưa chuẩn (H1/H2/H5), cần Part 1.
+- Quan sát thêm với Claude: ở phiên b lượt 4 và phiên d, Claude tự "đính chính" thông tin cũ không có thật hoặc đổi số lượng (1 ly thành 2 ly rồi lại 1 ly). Giả thuyết cần kiểm chứng ở Part 1: nguyên nhân có thể là trạng thái order chưa chuẩn (H1/H2/H5), chưa có bằng chứng xác nhận.
 - H4 (lộ nhãn điều khiển nội bộ) không xuất hiện trong lần chạy này.
 
 ## 3. ADR 0001 – 0010
@@ -86,7 +86,7 @@ Mỗi dòng: quyết định, lý do, và chi phí nếu quyết định sai.
 8. Sửa Dockerfile không dùng `uv run --no-dev` lúc khởi động mà gọi thẳng binary trong venv. Lý do: `uv run` đồng bộ chính xác và sẽ gỡ extra `ml` (torch) khi container khởi động. Chi phí nếu sai: không có.
 9. `.dockerignore` giữ lại `data/mock`. Lý do: bootstrap/seed đọc thư mục này bên trong container. Chi phí nếu sai: image lớn hơn một chút.
 10. Món `hidden`/`sold_out` vẫn là node với `available=false` (không xoá), nhưng các truy vấn MenuItem của retriever phải lọc `coalesce(m.available,true)`. Lý do: bot không bao giờ gợi ý món không bán được, và giữ node tránh embed lại khi bật/tắt. Chi phí nếu sai: index phình nhẹ.
-11. Truy cập Claude qua gateway OmniRoute của bạn: thêm `llm.anthropic.base_url` (YAML, không phải bí mật; rỗng = mặc định Anthropic), model `auto/claude-opus-5.5`, key đọc từ `ANTHROPIC_API_KEY`. Lý do: đã kiểm tra thật ngày 2026-11-01 (model trả về claude-opus-5-5, khoảng 2 s, structured output chạy được). Chi phí nếu sai: đổi model id/base_url trong YAML.
+11. Truy cập Claude qua gateway OmniRoute của bạn là override theo máy: `llm.anthropic.base_url` trong YAML mặc định rỗng (gọi thẳng Anthropic), model mặc định `claude-opus-5-5`; gateway và model `auto/claude-opus-5.5` đặt bằng `LLM__ANTHROPIC__BASE_URL` / `LLM__ANTHROPIC__MODEL` trong `.env` (git-ignored), key chỉ đọc từ `ANTHROPIC_API_KEY`. Lý do: đã kiểm tra thật ngày 2026-11-01 (model trả về claude-opus-5-5, khoảng 2 s, structured output chạy được), và không để khóa của người khác bị gửi tới gateway riêng. Chi phí nếu sai: đổi biến trong `.env`.
 12. Đọc `ANTHROPIC_API_KEY` tường minh và truyền `api_key` + `base_url` trực tiếp cho `AsyncAnthropic`; bỏ `load_dotenv` lúc import. Lý do: tránh rò credential không liên quan sang gateway bên thứ ba. Chi phí nếu sai: không có.
 13. Bước đo VRAM của Task 7 chạy không có SGLang. Lý do: LLM mặc định giờ là cloud và bạn muốn GPU trống. Chi phí nếu sai: chưa đo việc LLM 7B cục bộ chạy chung với các model (đã ghi trong ADR).
 14. Warmup lỗi thì chỉ cảnh báo log và vẫn phục vụ (model nạp lười ở request đầu). Lý do: nguyên tắc "không bao giờ chết", giống reranker tự hạ cấp. Chi phí nếu sai: GPU cấu hình sai chỉ bị phát hiện ở request đầu thay vì lúc khởi động (log/health vẫn báo).

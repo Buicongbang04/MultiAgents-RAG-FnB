@@ -17,6 +17,8 @@ COPY app ./app
 COPY configs ./configs
 COPY scripts ./scripts
 COPY data/mock ./data/mock
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY run.py ./
 
 EXPOSE 8001
