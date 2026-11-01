@@ -1,5 +1,2 @@
--r requirements.txt
-
-# SGLang and its extras pull heavy GPU/CUDA dependencies.
-# Install this only on the inference host with a compatible CUDA toolchain.
-sglang[all]
+# Dependencies are managed in pyproject.toml (extras: ml, ui). Use: uv sync --extra ml --extra ui
+# SGLang is not a project extra: run it from a separate venv (see Instructions.md) or the compose `local-llm` profile.

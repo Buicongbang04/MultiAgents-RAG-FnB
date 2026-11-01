@@ -1,6 +1,6 @@
 # MultiAgents RAG FnB
 
-Chatbot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy hoàn toàn Local — không phụ thuộc Cloud API.
+Chatbot tư vấn F&B (Highlands Coffee) sử dụng kiến trúc **Multi-Agent + Graph RAG** chạy Local theo mặc định (SGLang/mock); backend LLM Cloud (Claude) là tuỳ chọn.
 
 Hệ thống xử lý 4 luồng: **Đặt hàng**, **Tư vấn menu**, **FAQ**, **Ignore/Noise**.
 
@@ -76,21 +76,28 @@ git clone https://github.com/Buicongbang04/MultiAgents-RAG-FnB.git
 cd MultiAgents-RAG-FnB
 ```
 
-### 2. Tạo conda environment
+### 2. Cài uv
 
 ```bash
-conda create -n fiai python=3.11 -y
-conda activate fiai
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### 3. Cài dependencies
 
 ```bash
-pip install -r requirements.txt          # Core API
-pip install -r requirements-ml.txt       # HuggingFace, training
-pip install -r requirements-ui.txt       # Chainlit
-pip install -r requirements-serving.txt  # SGLang (cần CUDA)
+uv sync --extra ml --extra ui          # Core API + HuggingFace/training + Chainlit
 ```
+
+SGLang **không** nằm trong extras của dự án (phụ thuộc vllm/torch xung đột với lockfile). Chạy SGLang từ venv riêng:
+
+```bash
+uv venv .venv-sglang --python 3.11
+uv pip install --python .venv-sglang/bin/python "sglang[all]"
+# Khi khởi động thêm cờ đã chạy được trên máy phát triển:
+bash scripts/SGLang_Server.sh -- --attention-backend triton --sampling-backend pytorch
+```
+
+Hoặc dùng Docker: `docker compose --profile local-llm up -d sglang` (cần GPU).
 
 ### 4. Cấu hình
 
@@ -115,41 +122,49 @@ EMBEDDING__DEVICE=cuda         # cpu nếu không có GPU
 RERANKER__DEVICE=cuda
 ```
 
+### Backend Claude
+
+`LLM__BACKEND=anthropic` gọi thẳng `api.anthropic.com` với model `claude-opus-5-5` (mặc định trong `app.yaml`). Khóa **chỉ** đọc từ biến môi trường `ANTHROPIC_API_KEY` (đặt trong `.env`, không đặt trong YAML; `ANTHROPIC_AUTH_TOKEN` và profile `ant auth login` bị bỏ qua có chủ đích).
+
+Nếu dùng gateway tương thích Anthropic riêng, override theo máy trong `.env` (không commit):
+
+```env
+LLM__ANTHROPIC__BASE_URL=https://your-gateway.example.com   # gốc domain, không có /v1
+LLM__ANTHROPIC__MODEL=your-gateway-model-id
+```
+
+Lưu ý: khi đặt `BASE_URL`, `ANTHROPIC_API_KEY` sẽ được gửi tới host đó.
+
 Đổi cả bộ cấu hình (vd. cho staging): `APP_CONFIG_DIR=/path/to/configs python run.py`.
 
-### 5. Khởi động Neo4j
+### 5. Khởi động hạ tầng (Docker Compose)
 
 ```bash
-docker run \
-  --name neo4j-fnb \
-  -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/your_password \
-  -d neo4j:5
+cp .env.example .env                   # rồi sửa NEO4J__PASSWORD, ...
+docker compose up -d postgres neo4j    # Postgres :5433, Neo4j :7474/:7687
+docker compose ps                      # chờ cả hai ở trạng thái healthy
 ```
+
+Các profile tuỳ chọn:
+
+```bash
+docker compose --profile test up -d postgres-test neo4j-test  # DB riêng cho test tích hợp
+docker compose --profile local-llm up -d sglang               # SGLang trong Docker (cần GPU)
+docker compose up -d --build backend                          # backend trong Docker (port 8001)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build backend  # backend + GPU
+```
+
+Nếu còn container Neo4j chạy tay (`neo4j-fnb`) đang giữ port 7474/7687, hãy `docker stop neo4j-fnb` trước.
 
 ### 6. Nạp dữ liệu vào Graph
 
 ```bash
-conda activate fiai
-python -m scripts.ingest_mock_to_neo4j   # Xóa graph cũ + nạp menu/FAQ/docs
-python -m scripts.embed_graph            # Tạo embeddings cho vector search
+uv run python -m scripts.bootstrap            # migrate Postgres → seed → tạo index → chiếu sang Neo4j → embed
+uv run python -m scripts.bootstrap --reset    # xóa catalog Postgres rồi nạp lại
+uv run python -m scripts.bootstrap --skip-embed   # bỏ bước embedding
 ```
 
-Tạo Neo4j vector index (chạy 1 lần trong Neo4j Browser):
-
-```cypher
-CREATE VECTOR INDEX menu_embedding IF NOT EXISTS
-FOR (m:MenuItem) ON m.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-
-CREATE VECTOR INDEX chunk_embedding IF NOT EXISTS
-FOR (c:Chunk) ON c.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-
-CREATE VECTOR INDEX faq_embedding IF NOT EXISTS
-FOR (f:FAQ) ON f.embedding
-OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 'cosine'}};
-```
+Lệnh trên đã tự tạo constraint và 3 vector index (`menu_embedding`, `faq_embedding`, `chunk_embedding`), không cần chạy Cypher thủ công.
 
 ---
 
@@ -159,7 +174,7 @@ OPTIONS {indexConfig: {`vector.dimensions`: 1024, `vector.similarity_function`: 
 
 ```bash
 bash scripts/SGLang_Server.sh                          # tham số lấy từ llm.model + llm.server
-python -m scripts.launch_sglang --dry-run              # chỉ in câu lệnh sẽ chạy
+uv run python -m scripts.launch_sglang --dry-run              # chỉ in câu lệnh sẽ chạy
 bash scripts/SGLang_Server.sh -- --disable-flashinfer  # thêm cờ SGLang tuỳ ý
 ```
 
@@ -172,12 +187,11 @@ curl http://localhost:30000/v1/models
 ### Terminal 2 — Backend + UI
 
 ```bash
-conda activate fiai
 
-python run.py                          # Backend only (port 8001)
-python run.py --with-ui                # Backend + Chainlit UI (port 8501)
-python run.py --with-ui --ui-port 8080 # Đổi UI port
-python run.py --reload                 # Hot-reload (dev)
+uv run python run.py                          # Backend only (port 8001)
+uv run python run.py --with-ui                # Backend + Chainlit UI (port 8501)
+uv run python run.py --with-ui --ui-port 8080 # Đổi UI port
+uv run python run.py --reload                 # Hot-reload (dev)
 ```
 
 Sau khi start:
@@ -188,6 +202,16 @@ Kiểm tra hệ thống:
 
 ```bash
 curl http://localhost:8001/health
+```
+
+---
+
+## Chạy test
+
+```bash
+uv run pytest -q                                              # unit test, không cần hạ tầng
+docker compose --profile test up -d postgres-test neo4j-test  # hạ tầng cho integration test
+uv run pytest -m integration -q
 ```
 
 ---
@@ -271,7 +295,7 @@ app/
 ├── api/           # FastAPI routes (/chat, /cache/invalidate, /health)
 ├── cache/         # Exact cache + Semantic cache
 ├── core/          # Config, schemas, constants
-├── llm/           # SGLang client
+├── llm/           # SGLang / Claude / mock client
 ├── middleware/    # Rate limiting
 ├── prompts/       # System prompts cho từng agent
 ├── queueing/      # Concurrency control (Semaphore + retry)
@@ -286,6 +310,7 @@ data/mock/
 └── docs.jsonl     # 20 policy chunks
 
 scripts/           # Ingest, embed, benchmark, training
+tests/             # Unit (tests/unit) & integration (tests/integration) test
 chainlit_app.py    # Chainlit UI (word-by-word animation)
 run.py             # Entry point duy nhất
 ```

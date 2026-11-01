@@ -4,7 +4,8 @@ from typing import Any, AsyncIterator, Dict, List
 
 import httpx
 
-from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse
+from app.llm.base import BaseLLMClient, LLMGenerateRequest, LLMGenerateResponse, T
+from app.llm.errors import LLMStructuredOutputError, LLMUnavailableError
 
 
 class SGLangClient(BaseLLMClient):
@@ -16,6 +17,42 @@ class SGLangClient(BaseLLMClient):
         self.model = self.settings.llm.model
         self.base_url = self.settings.llm.base_url.rstrip("/")
         self.api_key = self.settings.llm.api_key
+        # Một AsyncClient dùng chung (connection pool), đóng ở aclose().
+        self._http = httpx.AsyncClient(timeout=self.settings.llm.timeout_seconds)
+
+    async def aclose(self) -> None:
+        await self._http.aclose()
+
+    async def generate_structured(self, request: LLMGenerateRequest, schema: type[T]) -> T:
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "messages": self._build_messages(request),
+            "temperature": request.temperature,
+            "max_tokens": request.max_tokens,
+            "stream": False,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": schema.__name__,
+                    "schema": schema.model_json_schema(),
+                    "strict": True,
+                },
+            },
+        }
+        try:
+            response = await self._http.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+        except Exception as exc:
+            raise LLMUnavailableError(f"SGLang structured call failed: {exc}") from exc
+        try:
+            return schema.model_validate_json(content)
+        except ValueError as exc:
+            raise LLMStructuredOutputError(str(exc)) from exc
 
     def _build_messages(self, request: LLMGenerateRequest) -> List[Dict[str, str]]:
         messages: List[Dict[str, str]] = []
@@ -77,12 +114,11 @@ class SGLangClient(BaseLLMClient):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.settings.llm.timeout_seconds) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=self._headers(),
-                )
+            response = await self._http.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=self._headers(),
+            )
             response.raise_for_status()
             data = response.json()
             text = (
@@ -130,41 +166,41 @@ class SGLangClient(BaseLLMClient):
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self.settings.llm.stream_timeout_seconds) as client:
-                async with client.stream(
-                    "POST",
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=self._headers(),
-                ) as response:
-                    response.raise_for_status()
-                    done = False
-                    async for line in response.aiter_lines():
-                        if done:
-                            continue
-                        if not line:
-                            continue
-                        if line.startswith("data:"):
-                            raw = line[len("data:"):].strip()
-                        else:
-                            raw = line.strip()
+            async with self._http.stream(
+                "POST",
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=self._headers(),
+                timeout=self.settings.llm.stream_timeout_seconds,
+            ) as response:
+                response.raise_for_status()
+                done = False
+                async for line in response.aiter_lines():
+                    if done:
+                        continue
+                    if not line:
+                        continue
+                    if line.startswith("data:"):
+                        raw = line[len("data:"):].strip()
+                    else:
+                        raw = line.strip()
 
-                        if raw == "[DONE]":
-                            done = True
-                            continue
+                    if raw == "[DONE]":
+                        done = True
+                        continue
 
-                        try:
-                            chunk = json.loads(raw)
-                        except json.JSONDecodeError:
-                            continue
+                    try:
+                        chunk = json.loads(raw)
+                    except json.JSONDecodeError:
+                        continue
 
-                        token = (
-                            chunk.get("choices", [{}])[0]
-                            .get("delta", {})
-                            .get("content")
-                        )
-                        if token:
-                            yield token
+                    token = (
+                        chunk.get("choices", [{}])[0]
+                        .get("delta", {})
+                        .get("content")
+                    )
+                    if token:
+                        yield token
 
         except Exception:
             fallback = self._fallback(request)

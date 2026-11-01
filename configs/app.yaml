@@ -21,6 +21,7 @@ server:
   ui_port: 8501
   neo4j_startup_retries: 3       # run.py kiểm tra Neo4j trước khi start
   neo4j_startup_retry_delay_seconds: 2.0
+  warmup_on_startup: true        # nạp + chạy thử embedding/reranker trước khi nhận request
 
 rate_limit:
   max_requests: 60               # số request tối đa / IP / cửa sổ
@@ -29,6 +30,7 @@ rate_limit:
 
 health:
   llm_timeout_seconds: 3.0
+  db_timeout_seconds: 2.0
 
 # ── Session & bộ nhớ hội thoại ────────────────────────────────────────────────
 session:
@@ -86,9 +88,15 @@ neo4j:
   password: ""                   # secret → đặt trong .env: NEO4J__PASSWORD
   database: neo4j
 
+# Postgres = nguồn sự thật của catalog (ADR 0002).
+database:
+  url: postgresql+asyncpg://fnb@localhost:5433/fnb   # secret → đặt URL đầy đủ trong .env: DATABASE__URL
+  echo: false
+  pool_size: 5
+
 # ── LLM generator ─────────────────────────────────────────────────────────────
 llm:
-  backend: mock                  # mock | sglang | vllm
+  backend: mock                  # mock | sglang | vllm | anthropic
   base_url: http://localhost:30000/v1
   api_key: EMPTY
   model: Qwen/Qwen2.5-7B-Instruct-AWQ
@@ -96,6 +104,11 @@ llm:
   max_tokens: 512
   timeout_seconds: 60
   stream_timeout_seconds: 120
+  anthropic:                     # khóa qua env ANTHROPIC_API_KEY (không đặt trong YAML)
+    model: claude-opus-5-5       # id Anthropic gốc; gateway riêng thì override qua .env
+    base_url: ""                 # rỗng = api.anthropic.com; gateway: LLM__ANTHROPIC__BASE_URL trong .env
+    timeout_seconds: 30
+    max_retries: 2
   server:                        # tham số cho scripts/SGLang_Server.sh
     host: 0.0.0.0
     port: 30000
@@ -155,12 +168,14 @@ embedding:
   model: BAAI/bge-m3
   dim: 1024
   device: cuda
+  dtype: float16                 # float16 chỉ áp dụng khi device=cuda, ngược lại ép float32
   batch_size: 16
 
 reranker:
   backend: bge                   # bge | null
   model: BAAI/bge-reranker-v2-m3
   device: cuda
+  dtype: float16
   # Điểm là xác suất sigmoid: nguồn đúng thường 0.02–0.99, câu ngoài dữ liệu ≤ 0.003.
   threshold: 0.01
 

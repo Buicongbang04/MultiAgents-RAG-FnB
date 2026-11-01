@@ -8,8 +8,8 @@ faq_0006,opening_hours,What are your opening hours?,"We're open daily from **7:0
 faq_0007,payment,Quán thanh toán bằng gì?,"Quán hỗ trợ **tiền mặt**, **thẻ ngân hàng (Visa/Mastercard)**, **MoMo**, **ZaloPay** và **chuyển khoản** ạ.",vi,highlands_faq.csv
 faq_0008,payment,Có nhận MoMo không?,"Dạ có ạ! Quán nhận **MoMo**, **ZaloPay**, tiền mặt và thẻ ngân hàng.",vi,highlands_faq.csv
 faq_0009,payment,Do you accept credit cards?,"Yes! We accept **Visa**, **Mastercard**, **MoMo**, **ZaloPay**, bank transfer, and cash.",en,highlands_faq.csv
-faq_0010,delivery,Có giao hàng không?,"Có ạ! Quán giao hàng qua **GrabFood**, **ShopeeFood** và **Baemin**. Anh/chị đặt trên app là được ngay ạ.",vi,highlands_faq.csv
-faq_0011,delivery,Đặt qua grab được không?,"Được ạ! Quán có trên **GrabFood**, **ShopeeFood** và **Baemin** ạ.",vi,highlands_faq.csv
+faq_0010,delivery,Có giao hàng không?,"Có ạ! Quán tự giao hàng, phí giao **15.000đ**/đơn. Anh/chị đặt ngay trong khung chat này, chọn **Giao hàng** và nhập địa chỉ là được ạ.",vi,highlands_faq.csv
+faq_0011,delivery,Đặt qua grab được không?,"Quán không bán qua GrabFood hay ShopeeFood ạ. Anh/chị đặt trực tiếp ngay tại đây, quán tự giao với phí **15.000đ**/đơn ạ.",vi,highlands_faq.csv
 faq_0012,takeaway,Có bán mang đi không?,"Dạ có ạ! Tất cả món trong menu đều có thể mang đi (takeaway). Anh/chị báo nhân viên khi order nhé.",vi,highlands_faq.csv
 faq_0013,parking,Có chỗ gửi xe không?,"Quán có **bãi giữ xe** ngay trước cửa ạ. Miễn phí trong 2 giờ đầu.",vi,highlands_faq.csv
 faq_0014,invoice,Lấy hóa đơn VAT được không?,"Được ạ! Anh/chị yêu cầu **xuất hóa đơn VAT** tại quầy trước khi thanh toán, nhân viên sẽ hỗ trợ.",vi,highlands_faq.csv
@@ -26,6 +26,6 @@ faq_0024,seat,Quán có chỗ ngồi làm việc không?,"Có ạ! Hầu hết c
 faq_0025,kids,Trẻ em uống gì?,"Trẻ em thích **Chocolate Freeze** hoặc **Freeze Khoai Môn** ạ — ngọt, mát và đẹp mắt. Có thể yêu cầu ít đường thêm.",vi,highlands_faq.csv
 faq_0026,best_seller,Món nào bán chạy nhất?,"**Bạc xỉu**, **Trà đào cam sả** và **Chocolate Freeze** là 3 món bán chạy nhất ạ. Rất được khách quen yêu thích!",vi,highlands_faq.csv
 faq_0027,hot_drink,Có đồ uống nóng không?,"Có ạ! **Cà phê đen nóng**, **Cà phê sữa nóng**, **Cappuccino** và **Latte** đều có phục vụ nóng.",vi,highlands_faq.csv
-faq_0028,reservation,Có đặt bàn trước không?,"Highlands Coffee không nhận đặt bàn trước ạ — phục vụ theo thứ tự vào quán. Anh/chị đến sớm vào giờ cao điểm nhé.",vi,highlands_faq.csv
+faq_0028,reservation,Có đặt bàn trước không?,"Quán không nhận giữ bàn trước ạ. Nhưng anh/chị có thể **đặt món trước** (mang đi hoặc giao hàng) và hẹn giờ nhận trong vòng 2 ngày, từ 7:00 đến 22:00 ạ.",vi,highlands_faq.csv
 faq_0029,social,What's your social media?,"Follow us on **Facebook** and **Instagram** @highlandscoffee.vn for latest news, promotions and new drinks!",en,highlands_faq.csv
 faq_0030,feedback,Góp ý cho quán như thế nào?,"Anh/chị góp ý qua **fanpage Facebook**, **app Highlands Coffee**, hoặc trực tiếp tại quầy. Chúng em luôn lắng nghe ạ!",vi,highlands_faq.csv

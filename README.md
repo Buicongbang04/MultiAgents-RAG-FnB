@@ -339,7 +339,7 @@ Các nguyên tắc:
 
 ## 9. Graph RAG — trái tim của hệ thống
 
-### 9.1 Mô hình đồ thị ([scripts/ingest_mock_to_neo4j.py](scripts/ingest_mock_to_neo4j.py))
+### 9.1 Mô hình đồ thị ([app/knowledge/graph_writer.py](app/knowledge/graph_writer.py), nạp bằng `uv run python -m scripts.bootstrap`)
 
 ```mermaid
 graph LR
@@ -356,7 +356,7 @@ graph LR
 - **FAQ**: `topic`, `question`, `answer`, `embedding`.
 - **Chunk**: đoạn chính sách (hoàn tiền, tuỳ chỉnh, combo…), nối nhau bằng `NEXT` theo thứ tự trong tài liệu.
 - **Entity**: nguyên liệu, tag, và **11 domain entity** định nghĩa sẵn (chủ đề FAQ: wifi/giờ/giao hàng/size/thanh toán; sở thích: ít ngọt, giá rẻ; danh mục: coffee/tea/freeze/food) — liên kết bằng khớp từ khoá khi ingest.
-- Tổng: 55 MenuItem, 30 FAQ, 20 Chunk, 157 Entity, 4 Category, **832 quan hệ**.
+- Tổng: 55 MenuItem, 30 FAQ, 20 Chunk, 157 Entity, 4 Category, **838 quan hệ**.
 - Embedding BGE-M3 (1024 chiều) cho MenuItem/FAQ/Chunk ([app/rag/vector_index.py](app/rag/vector_index.py)) + 3 **Neo4j vector index** (cosine): `menu_embedding`, `faq_embedding`, `chunk_embedding`.
 
 ### 9.2 Pipeline truy xuất (`rag.retrieval_mode: hybrid_graph`)
@@ -508,7 +508,7 @@ CLAUSE   {clause}                                    ← mỗi khi gom đủ m�
 | Sinh dữ liệu | [generate_router_dataset.py](scripts/generate_router_dataset.py) — seed + biến thể (hậu tố "nhé/ạ/please", lỗi gõ/viết tắt "ko/k/dc/mik/wf", câu khó) | [generate_intent_extraction_dataset.py](scripts/generate_intent_extraction_dataset.py) |
 | Train | [train_router_sft.py](scripts/train_router_sft.py) | [train_intent_extractor_sft.py](scripts/train_intent_extractor_sft.py) |
 
-Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double quantization, compute fp16), LoRA `r=16`, `alpha=32`, `dropout=0.05` trên toàn bộ projection attention (`q/k/v/o_proj`) và MLP (`gate/up/down_proj`), 5 epoch, `lr=2e-4`, chọn checkpoint theo `eval_loss` từng epoch. Sau train có script **merge adapter** vào base model ([merge_router_lora.py](scripts/merge_router_lora.py)) để suy luận nhanh hơn (`router.backend: hf_merged`). Siêu tham số nằm trong [configs/training.yaml](configs/training.yaml), đường dẫn model lấy từ `router.hf` / `intent_extractor.hf` của `app.yaml`. Có script đánh giá ([evaluate_router_sft.py](scripts/evaluate_router_sft.py), [evaluate_intent_extractor_sft.py](scripts/evaluate_intent_extractor_sft.py)) và kiểm tra chất lượng dataset (đủ trường, nhãn hợp lệ, phân bố intent/ngôn ngữ/độ khó — [tests/](tests/)).
+Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double quantization, compute fp16), LoRA `r=16`, `alpha=32`, `dropout=0.05` trên toàn bộ projection attention (`q/k/v/o_proj`) và MLP (`gate/up/down_proj`), 5 epoch, `lr=2e-4`, chọn checkpoint theo `eval_loss` từng epoch. Sau train có script **merge adapter** vào base model ([merge_router_lora.py](scripts/merge_router_lora.py)) để suy luận nhanh hơn (`router.backend: hf_merged`). Siêu tham số nằm trong [configs/training.yaml](configs/training.yaml), đường dẫn model lấy từ `router.hf` / `intent_extractor.hf` của `app.yaml`. Có script đánh giá ([evaluate_router_sft.py](scripts/evaluate_router_sft.py), [evaluate_intent_extractor_sft.py](scripts/evaluate_intent_extractor_sft.py)) và kiểm tra chất lượng dataset (đủ trường, nhãn hợp lệ, phân bố intent/ngôn ngữ/độ khó — [scripts/checks/](scripts/checks/)).
 
 **Vì sao fine-tune model 0.5B thay vì prompt model 7B?** Phân loại 4 nhãn là bài toán hẹp: model nhỏ fine-tune thường đạt độ chính xác ngang/hơn model lớn prompt zero-shot, nhưng rẻ hơn nhiều lần, và **không tranh GPU với generator** (router 7B phải xếp hàng sau request sinh text vì `max-running-requests 1`).
 
@@ -520,7 +520,7 @@ Cấu hình chung: **Qwen2.5-0.5B-Instruct**, **QLoRA** (load 4-bit NF4 + double
 
 Môi trường đo: laptop **không dùng được GPU** (driver NVIDIA lỗi) → embedding + reranker chạy **CPU**, `llm.backend: mock`. Số liệu retrieval/router không phụ thuộc LLM; số liệu latency là cận trên (GPU sẽ nhanh hơn đáng kể).
 
-### Retrieval — [tests/rag_retrieval_benchmark.py](tests/rag_retrieval_benchmark.py) (20 câu, intent cố định)
+### Retrieval — [scripts/checks/rag_retrieval_benchmark.py](scripts/checks/rag_retrieval_benchmark.py) (20 câu, intent cố định)
 
 | Cấu hình | Top-1 | Top-5 |
 |---|---|---|
@@ -596,7 +596,7 @@ Phát hiện khi đo đạc lại hệ thống — mỗi bug đều được tá
 - Session và cache nằm trong RAM của 1 process → mất khi restart, không scale nhiều instance. Hướng: **Redis** (session, exact cache) + vector store cho semantic cache.
 - Rate limit in-memory theo IP → cần Redis/gateway khi scale ngang.
 - Chainlit gọi `/chat` rồi tự tạo hiệu ứng gõ chữ, chưa dùng `/chat/stream` thật.
-- Chưa có CI, bộ test pytest tự động và bộ đánh giá end-to-end lớn (chấm theo `source_id`, LLM-as-judge cho câu trả lời).
+- Đã có CI và bộ test pytest (unit + integration), nhưng chưa có bộ đánh giá end-to-end lớn (chấm theo `source_id`, LLM-as-judge cho câu trả lời).
 
 ---
 
@@ -675,7 +675,8 @@ data/
 ├── router/              # dataset 800 mẫu + split SFT
 └── intent_extraction/   # dataset 1000 mẫu + split SFT
 scripts/                 # ingest, embed, train, merge, evaluate, benchmark, SGLang launcher
-tests/                   # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
+  checks/                # benchmark retrieval, kiểm tra chất lượng dataset, thử backend
+tests/                   # unit (tests/unit) + integration (tests/integration, cần compose profile test)
 chainlit_app.py          # UI demo
 run.py                   # Entry point: check Neo4j → (Chainlit) → Uvicorn
 Instructions.md          # Hướng dẫn cài đặt & chạy

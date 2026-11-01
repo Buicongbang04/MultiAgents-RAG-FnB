@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from functools import lru_cache
 
@@ -42,8 +43,14 @@ class SentenceTransformersEmbeddingClient(BaseEmbeddingClient):
         model_name: str,
         device: str,
         batch_size: int,
+        dtype: str = "float32",
     ) -> None:
+        # torch/sentence_transformers chỉ import khi thật sự nạp model (unit test mock không cần torch).
+        import torch
         from sentence_transformers import SentenceTransformer
+
+        # fp16 chỉ có nghĩa trên GPU; CPU luôn dùng fp32.
+        torch_dtype = torch.float16 if (dtype == "float16" and device.startswith("cuda")) else torch.float32
 
         self.model_name = model_name
         self.device = device
@@ -52,10 +59,13 @@ class SentenceTransformersEmbeddingClient(BaseEmbeddingClient):
         self.model = SentenceTransformer(
             model_name,
             device=device,
+            model_kwargs={"dtype": torch_dtype},
         )
 
     async def embed_text(self, text: str) -> list[float]:
-        embeddings = self.model.encode(
+        # encode là blocking (GPU/CPU) → chạy ở thread riêng để không chặn event loop.
+        embeddings = await asyncio.to_thread(
+            self.model.encode,
             [text],
             batch_size=1,
             normalize_embeddings=True,
@@ -69,7 +79,8 @@ class SentenceTransformersEmbeddingClient(BaseEmbeddingClient):
         if not texts:
             return []
 
-        embeddings = self.model.encode(
+        embeddings = await asyncio.to_thread(
+            self.model.encode,
             texts,
             batch_size=self.batch_size,
             normalize_embeddings=True,
@@ -95,6 +106,7 @@ def get_embedding_client() -> BaseEmbeddingClient:
             model_name=config.model,
             device=config.device,
             batch_size=config.batch_size,
+            dtype=config.dtype,
         )
 
     raise ValueError(f"Unsupported embedding backend: {config.backend}")

@@ -50,6 +50,7 @@ class ServerSection(_Section):
     ui_port: int
     neo4j_startup_retries: int
     neo4j_startup_retry_delay_seconds: float
+    warmup_on_startup: bool
 
 
 class RateLimitSection(_Section):
@@ -60,6 +61,7 @@ class RateLimitSection(_Section):
 
 class HealthSection(_Section):
     llm_timeout_seconds: float
+    db_timeout_seconds: float
 
 
 class SessionSection(_Section):
@@ -114,6 +116,12 @@ class Neo4jSection(_Section):
     database: str
 
 
+class DatabaseSection(_Section):
+    url: str
+    echo: bool
+    pool_size: int
+
+
 # ── LLM ───────────────────────────────────────────────────────────────────────
 class LLMServerSection(_Section):
     host: str
@@ -125,8 +133,15 @@ class LLMServerSection(_Section):
     schedule_policy: str
 
 
+class AnthropicSection(_Section):
+    model: str
+    base_url: str  # rỗng = endpoint mặc định của SDK; khóa API lấy từ env ANTHROPIC_API_KEY
+    timeout_seconds: float
+    max_retries: int
+
+
 class LLMSection(_Section):
-    backend: Literal["mock", "sglang", "vllm"]
+    backend: Literal["mock", "sglang", "vllm", "anthropic"]
     base_url: str
     api_key: str
     model: str
@@ -135,6 +150,7 @@ class LLMSection(_Section):
     timeout_seconds: float
     stream_timeout_seconds: float
     server: LLMServerSection
+    anthropic: AnthropicSection
 
 
 # ── Router / intent extractor ─────────────────────────────────────────────────
@@ -190,6 +206,7 @@ class EmbeddingSection(_Section):
     model: str
     dim: int
     device: str
+    dtype: Literal["float16", "float32"]
     batch_size: int
 
 
@@ -197,6 +214,7 @@ class RerankerSection(_Section):
     backend: Literal["bge", "null"]
     model: str
     device: str
+    dtype: Literal["float16", "float32"]
     threshold: float
 
 
@@ -340,6 +358,7 @@ class Settings(BaseSettings):
     order_dialogue: OrderDialogueSection
     queue: QueueSection
     neo4j: Neo4jSection
+    database: DatabaseSection
     llm: LLMSection
     router: RouterSection
     intent_extractor: IntentExtractorSection
