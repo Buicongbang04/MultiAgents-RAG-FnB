@@ -3,10 +3,6 @@ from __future__ import annotations
 import time
 from functools import lru_cache
 
-import torch
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
 from app.core.config import get_lexicon, get_settings
 from app.core.constants import Intent, Language
 from app.core.logging import get_logger
@@ -69,6 +65,11 @@ def detect_language_simple(text: str) -> Language:
 
 class HFRouter:
     def __init__(self, merged: bool = False) -> None:
+        # torch/peft/transformers chỉ cần khi thực sự dùng router HF (extra `ml`).
+        import torch
+        from peft import PeftModel
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
         self.settings = get_settings()
         self.config = self.settings.router.hf
         self.merged = merged
@@ -146,6 +147,8 @@ class HFRouter:
             prompt,
             return_tensors="pt",
         ).to(self.model.device)
+
+        import torch
 
         with torch.no_grad():
             output_ids = self.model.generate(
